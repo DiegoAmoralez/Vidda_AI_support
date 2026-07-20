@@ -1,6 +1,8 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   Bar,
@@ -39,6 +41,7 @@ import {
 } from "@/data/seed";
 import type { Employee, RiskLevel } from "@/domain/types";
 import { cn } from "@/lib/utils";
+import { useDemoStore } from "@/store/demo-store";
 
 const riskVariant = (risk: RiskLevel) => {
   if (risk === "critical") return "destructive";
@@ -48,6 +51,10 @@ const riskVariant = (risk: RiskLevel) => {
 };
 
 export const EmployeesScreen = () => {
+  const router = useRouter();
+  const setSelectedEmployeeId = useDemoStore(
+    (state) => state.setSelectedEmployeeId,
+  );
   const [query, setQuery] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [descending, setDescending] = useState(true);
@@ -80,7 +87,7 @@ export const EmployeesScreen = () => {
             <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Department</TableHead><TableHead>Capability score</TableHead><TableHead>Risk</TableHead><TableHead>Cases</TableHead><TableHead>Repeated errors</TableHead><TableHead>Trend</TableHead><TableHead /></TableRow></TableHeader>
             <TableBody>
               {visibleEmployees.map((employee) => (
-                <TableRow key={employee.id}>
+                <TableRow key={employee.id} id={`employee-${employee.id}`}>
                   <TableCell><p className="font-bold">{employee.name}</p><p className="text-[10px] text-muted-foreground">{employee.role}</p></TableCell>
                   <TableCell className="text-xs">{employee.department}</TableCell>
                   <TableCell><span className="font-mono font-bold">{employee.capabilityScore}%</span></TableCell>
@@ -95,12 +102,27 @@ export const EmployeesScreen = () => {
           </Table>
         </div>
       </Card>
-      <EmployeeProfile employee={selectedEmployee} onClose={() => setSelectedEmployee(null)} />
+      <EmployeeProfile
+        employee={selectedEmployee}
+        onClose={() => setSelectedEmployee(null)}
+        onOpenLearningPlan={(employeeId) => {
+          setSelectedEmployeeId(employeeId);
+          router.push("/portal/role-learning-plans");
+        }}
+      />
     </Page>
   );
 };
 
-const EmployeeProfile = ({ employee, onClose }: { employee: Employee | null; onClose: () => void }) => (
+const EmployeeProfile = ({
+  employee,
+  onClose,
+  onOpenLearningPlan,
+}: {
+  employee: Employee | null;
+  onClose: () => void;
+  onOpenLearningPlan: (employeeId: string) => void;
+}) => (
   <Dialog open={Boolean(employee)} onOpenChange={(open) => !open && onClose()}>
     <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
       <DialogHeader><DialogTitle>{employee?.name}</DialogTitle><DialogDescription>{employee?.role} · {employee?.department} · {employee?.branch}</DialogDescription></DialogHeader>
@@ -109,7 +131,7 @@ const EmployeeProfile = ({ employee, onClose }: { employee: Employee | null; onC
       </div>
       <div className="rounded-xl bg-[var(--vidda-primary)] p-5 text-white">
         <p className="flex items-center gap-2 text-xs font-extrabold text-[var(--vidda-accent)]"><Icon icon="solar:magic-stick-3-linear" />AI summary</p>
-        <p className="mt-3 text-sm leading-6 text-white/65">{employee?.name.startsWith("Daniel") ? "Daniel consistently identifies suspicious activity but fails to follow the correct escalation sequence. His theoretical knowledge is adequate, while practical decision execution remains below the role benchmark." : "The employee identifies core risks consistently. Recent results show the strongest opportunity in escalation timing and documentation of the decision rationale."}</p>
+        <p className="mt-3 text-sm leading-6 text-white/65">{employee && employee.repeatedErrors >= 4 ? `${employee.name} shows repeated practical execution errors despite partial knowledge evidence. The next plan should prioritize observed practice and manager validation.` : `${employee?.name} identifies core risks consistently. Recent evidence indicates that targeted practice should focus on the lowest role-specific capability gap.`}</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {[
@@ -119,7 +141,7 @@ const EmployeeProfile = ({ employee, onClose }: { employee: Employee | null; onC
           ["AML escalation", employee?.riskLevel === "critical" ? 39 : 54],
         ].map(([label, score]) => <div key={label} className="rounded-xl border p-4"><div className="mb-2 flex justify-between text-xs"><span>{label}</span><span className="font-mono font-bold">{score}%</span></div><Progress value={Number(score)} className="h-1.5" /></div>)}
       </div>
-      <div className="flex flex-wrap justify-end gap-2"><Button variant="outline" onClick={() => toast.success("Manager note saved")}>Add manager note</Button><Button onClick={() => toast.success("Targeted reassessment assigned")}>Assign reassessment</Button></div>
+      <div className="flex flex-wrap justify-end gap-2"><Button variant="outline" onClick={() => toast.success("Manager note saved")}>Add manager note</Button><Button variant="outline" disabled={!employee} onClick={() => employee && onOpenLearningPlan(employee.id)}>Open learning plan</Button><Button onClick={() => toast.success("Targeted reassessment assigned")}>Assign reassessment</Button></div>
     </DialogContent>
   </Dialog>
 );
@@ -153,6 +175,10 @@ const capabilityGroups = [
 
 export const CapabilitiesScreen = () => (
   <Page title="Capability framework" eyebrow="Financial Crime Compliance" description="Policies are mapped to observable behaviors, roles, cases and target proficiency.">
+    <div id="capability-cap-escalation" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white p-4">
+      <p className="text-xs text-muted-foreground">Canonical capability IDs now connect approved role requirements to evidence.</p>
+      <div className="flex gap-2"><Button variant="outline" asChild><Link href="/portal/role-catalog">View role requirements</Link></Button><Button asChild><Link href="/portal/traceability">Trace to evidence</Link></Button></div>
+    </div>
     <div className="grid gap-5 lg:grid-cols-[.75fr_1.25fr]">
       <Card className="shadow-none"><CardContent className="p-5"><p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Domain hierarchy</p><div className="mt-4 space-y-2">{capabilityGroups.map((group, index) => <button key={group.group} className={cn("flex w-full items-center justify-between rounded-xl border p-3 text-left text-sm font-bold hover:bg-secondary", index === 0 && "border-[var(--vidda-primary)] bg-secondary")}><span>{group.group}</span><Badge variant="outline">{group.capabilities.length}</Badge></button>)}</div></CardContent></Card>
       <Card className="shadow-none"><CardContent className="p-6"><div className="flex flex-wrap items-center gap-2"><Badge>High criticality</Badge><Badge variant="outline">Target level 4</Badge></div><h2 className="mt-4 text-2xl font-extrabold">AML Escalation</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Recognizes escalation triggers and follows the authorized sequence before transaction execution.</p><div className="mt-6 grid gap-2">{["Recognizes escalation trigger", "Pauses transaction when required", "Collects supporting evidence", "Uses correct escalation channel", "Avoids tipping-off", "Documents decision", "Waits for authorized approval"].map((behavior, index) => <div key={behavior} className="flex items-center gap-3 rounded-xl border p-3"><span className={cn("grid size-7 place-items-center rounded-full font-mono text-[10px]", index < 4 ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800")}>{index < 4 ? "✓" : "!"}</span><span className="text-xs font-medium">{behavior}</span><span className="ml-auto font-mono text-[10px] text-muted-foreground">{index < 4 ? "72–84%" : "49–61%"}</span></div>)}</div><div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">{[["Bank benchmark", "80%"], ["Current average", "64%"], ["Linked policies", "4"], ["Linked cases", "11"]].map(([label, value]) => <div key={label} className="rounded-xl bg-secondary p-3"><p className="font-mono text-[9px] uppercase text-muted-foreground">{label}</p><p className="mt-2 font-extrabold">{value}</p></div>)}</div></CardContent></Card>

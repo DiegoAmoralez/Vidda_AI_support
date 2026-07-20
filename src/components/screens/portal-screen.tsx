@@ -29,6 +29,11 @@ import {
   KnowledgeBaseScreen,
   RegulatoryUpdatesScreen,
 } from "@/components/screens/regulatory-workflows";
+import { RoleCatalogScreen } from "@/components/screens/role-catalog";
+import { JobDescriptionParserScreen } from "@/components/screens/job-description-parser";
+import { RoleMappingScreen } from "@/components/screens/role-mapping";
+import { RoleLearningPlanScreen } from "@/components/screens/role-learning-plan";
+import { TraceabilityExplorerScreen } from "@/components/screens/traceability-explorer";
 
 export const PortalScreen = ({ slug }: { slug: string }) => {
   switch (slug) {
@@ -46,6 +51,16 @@ export const PortalScreen = ({ slug }: { slug: string }) => {
       return <AchievementsScreen />;
     case "overview":
       return <ComplianceOverview />;
+    case "role-catalog":
+      return <RoleCatalogScreen />;
+    case "job-description-parser":
+      return <JobDescriptionParserScreen />;
+    case "role-mapping":
+      return <RoleMappingScreen />;
+    case "role-learning-plans":
+      return <RoleLearningPlanScreen />;
+    case "traceability":
+      return <TraceabilityExplorerScreen />;
     case "daily-cases":
       return <DailyCasesScreen />;
     case "knowledge-base":

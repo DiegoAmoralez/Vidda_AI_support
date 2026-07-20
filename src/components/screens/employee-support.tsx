@@ -112,7 +112,6 @@ export const KnowledgeAssistantScreen = () => {
           ) : (
             <div className="mt-12 py-12 text-center text-muted-foreground"><Icon icon="solar:notebook-bookmark-linear" className="mx-auto size-10 opacity-40" /><p className="mt-3 text-sm">Ask a policy question to see a cited answer.</p></div>
           )}
-          <p className="mt-5 text-[10px] text-muted-foreground">The assistant does not replace authorized Compliance, Legal or Risk functions.</p>
         </CardContent>
       </Card>
     </Section>

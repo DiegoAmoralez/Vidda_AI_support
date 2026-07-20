@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,7 @@ export const AuditTrailScreen = () => {
   const events = [...overlay, ...auditEvents];
   return (
     <Page title="Audit Trail" eyebrow="Immutable evidence record" description="Every policy, AI, expert and employee action is versioned with actor, source and reason.">
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-white p-4"><Badge variant="outline" className="gap-1.5"><Icon icon="solar:lock-keyhole-linear" />Immutable record</Badge><span className="text-xs text-muted-foreground">Hash chain verified · Last validation 17 Jul 2026, 15:00 CET</span><Button variant="outline" size="sm" className="ml-auto" onClick={() => downloadReport("csv")}>Export evidence</Button></div>
+      <div id="audit-role-intelligence" className="flex flex-wrap items-center gap-3 rounded-xl border bg-white p-4"><Badge variant="outline" className="gap-1.5"><Icon icon="solar:lock-keyhole-linear" />Immutable record</Badge><span className="text-xs text-muted-foreground">Hash chain verified · Last validation 17 Jul 2026, 15:00 CET</span><Button variant="ghost" size="sm" className="ml-auto" asChild><Link href="/portal/traceability">Open traceability</Link></Button><Button variant="outline" size="sm" onClick={() => downloadReport("csv")}>Export evidence</Button></div>
       <Card className="overflow-hidden shadow-none"><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Timestamp</TableHead><TableHead>Actor</TableHead><TableHead>Action</TableHead><TableHead>Entity</TableHead><TableHead>Previous</TableHead><TableHead>New value</TableHead><TableHead>Reason / source</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{events.map((event) => <TableRow key={event.id}><TableCell className="whitespace-nowrap font-mono text-[10px]">{event.timestamp}</TableCell><TableCell><p className="text-xs font-bold">{event.actor}</p><Badge variant="outline" className="mt-1 text-[9px]">{event.actorType}</Badge></TableCell><TableCell className="text-xs font-bold">{event.action}</TableCell><TableCell className="max-w-44 text-xs">{event.entity}</TableCell><TableCell className="max-w-36 text-[10px] text-muted-foreground">{event.previousValue}</TableCell><TableCell className="max-w-36 text-[10px]">{event.newValue}</TableCell><TableCell className="max-w-48"><p className="text-[10px]">{event.reason}</p><p className="mt-1 text-[9px] text-muted-foreground">{event.source}</p></TableCell><TableCell><Badge variant="outline">{event.status}</Badge></TableCell></TableRow>)}</TableBody></Table></div></Card>
     </Page>
   );

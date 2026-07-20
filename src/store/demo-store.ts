@@ -3,15 +3,36 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { defaultCampaign } from "@/data/seed";
+import {
+  capabilityCatalog,
+  employeeRoleAssignments as seededEmployeeRoleAssignments,
+  jobRoles as seededJobRoles,
+  learningCatalog,
+  parsedStatements as seededParsedStatements,
+} from "@/data/role-intelligence";
 import type {
   AssessmentResult,
   AuditEvent,
   Campaign,
   CaseSessionStage,
   DemoRole,
+  EmployeeRoleAssignment,
+  JobRole,
+  LearningRecommendation,
+  ParsedStatement,
+  RiskExposureAssessment,
 } from "@/domain/types";
 import { dailyCashCase } from "@/data/cases";
 import { evaluateCase } from "@/lib/scoring/evaluate-case";
+import { calculateRiskExposure } from "@/lib/role-intelligence/calculate-risk-exposure";
+import { deriveCapabilityProfile } from "@/lib/role-intelligence/derive-capability-profile";
+import {
+  getEmployeeById,
+  getEmployeeCapabilityLevels,
+  getEmployeeRiskFactors,
+  getEmployeeRoleAssignments,
+} from "@/lib/role-intelligence/employee-scope";
+import { recommendLearning } from "@/lib/role-intelligence/recommend-learning";
 
 type SimulationPreset = "correct" | "partial" | "critical";
 
@@ -30,6 +51,13 @@ type DemoState = {
   generatedCaseStatus: "idle" | "expert-review" | "approved";
   campaign: Campaign;
   auditOverlay: AuditEvent[];
+  jobRoles: JobRole[];
+  parsedStatements: ParsedStatement[];
+  employeeRoleAssignments: EmployeeRoleAssignment[];
+  selectedEmployeeId: string;
+  selectedJobRoleId: string;
+  riskExposure: RiskExposureAssessment;
+  learningRecommendations: LearningRecommendation[];
   setRole: (role: DemoRole) => void;
   setStage: (stage: CaseSessionStage) => void;
   setAnswerText: (value: string) => void;
@@ -45,7 +73,95 @@ type DemoState = {
   approveGeneratedCase: () => void;
   launchCampaign: () => void;
   completeCampaign: () => void;
+  setSelectedEmployeeId: (employeeId: string) => void;
+  selectJobRole: (roleId: string) => void;
+  createJobRoleDraft: (
+    title: string,
+    method: "manual" | "template" | "ai-assisted",
+  ) => string;
+  submitJobRoleForReview: (roleId: string) => void;
+  approveJobRole: (roleId: string) => void;
+  publishJobRole: (roleId: string) => void;
+  reviewParsedStatement: (
+    statementId: string,
+    decision: "approved" | "edited" | "rejected",
+  ) => void;
+  approveRoleAssignment: (assignmentId: string) => void;
+  approveRiskExposure: () => void;
+  approveLearningRecommendation: (recommendationId: string) => void;
+  reassessRoleIntelligence: () => void;
   resetDemo: () => void;
+};
+
+const buildRoleIntelligenceSnapshot = (
+  employeeId: string,
+  assignments: EmployeeRoleAssignment[],
+  roles: JobRole[],
+  statements: ParsedStatement[],
+) => {
+  const scopedAssignments = getEmployeeRoleAssignments({
+    employeeId,
+    persistedAssignments: assignments,
+    roles,
+  });
+  const profile = deriveCapabilityProfile({
+    employeeId,
+    assignments: scopedAssignments,
+    roles,
+    capabilities: capabilityCatalog,
+    demonstratedLevels: getEmployeeCapabilityLevels(employeeId),
+    asOf: "2026-08-10",
+  });
+  const primaryRole = roles.find(
+    (role) => role.id === profile.activeAssignments[0]?.roleId,
+  );
+  const riskExposure = calculateRiskExposure({
+    employeeId,
+    roleIds: profile.activeAssignments.map((assignment) => assignment.roleId),
+    factors: getEmployeeRiskFactors(employeeId, primaryRole),
+  });
+  const learningRecommendations = recommendLearning({
+    profile,
+    catalog: learningCatalog,
+    jurisdiction: "European Union",
+    legalEntity: "NordBank Polska S.A.",
+    roleFamilies: profile.activeAssignments
+      .map(
+        (assignment) =>
+          roles.find((role) => role.id === assignment.roleId)?.family,
+      )
+      .filter((family): family is string => Boolean(family)),
+    blockedCapabilityIds: statements
+      .filter(
+        (statement) =>
+          statement.reviewStatus !== "approved" &&
+          statement.classification !== "explicit",
+      )
+      .flatMap((statement) => statement.capabilityIds),
+  });
+  return { riskExposure, learningRecommendations };
+};
+
+const initialRoleSnapshot = buildRoleIntelligenceSnapshot(
+  "emp-0003",
+  seededEmployeeRoleAssignments,
+  seededJobRoles,
+  seededParsedStatements,
+);
+
+const mergePersistedJobRoles = (persistedRoles?: JobRole[]) => {
+  if (!persistedRoles?.length) return seededJobRoles;
+  const persistedById = new Map(
+    persistedRoles.map((role) => [role.id, role]),
+  );
+  const seedIds = new Set(seededJobRoles.map((role) => role.id));
+  return [
+    ...seededJobRoles.map((seedRole) => ({
+      ...seedRole,
+      ...persistedById.get(seedRole.id),
+    })),
+    ...persistedRoles.filter((role) => !seedIds.has(role.id)),
+  ];
 };
 
 const initialState = {
@@ -63,6 +179,13 @@ const initialState = {
   generatedCaseStatus: "idle" as const,
   campaign: defaultCampaign,
   auditOverlay: [] as AuditEvent[],
+  jobRoles: seededJobRoles,
+  parsedStatements: seededParsedStatements,
+  employeeRoleAssignments: seededEmployeeRoleAssignments,
+  selectedEmployeeId: "emp-0003",
+  selectedJobRoleId: "role-retail-rm-pl",
+  riskExposure: initialRoleSnapshot.riskExposure,
+  learningRecommendations: initialRoleSnapshot.learningRecommendations,
 };
 
 const createAuditEvent = (
@@ -89,6 +212,20 @@ export const useDemoStore = create<DemoState>()(
     (set, get) => ({
       ...initialState,
       setRole: (role) => set({ role }),
+      setSelectedEmployeeId: (selectedEmployeeId) =>
+        set((state) => {
+          const snapshot = buildRoleIntelligenceSnapshot(
+            selectedEmployeeId,
+            state.employeeRoleAssignments,
+            state.jobRoles,
+            state.parsedStatements,
+          );
+          return {
+            selectedEmployeeId,
+            riskExposure: snapshot.riskExposure,
+            learningRecommendations: snapshot.learningRecommendations,
+          };
+        }),
       setStage: (stage) => set({ stage }),
       setAnswerText: (answerText) => set({ answerText }),
       toggleAction: (actionId) =>
@@ -232,10 +369,237 @@ export const useDemoStore = create<DemoState>()(
             ...state.auditOverlay,
           ],
         })),
+      selectJobRole: (selectedJobRoleId) => set({ selectedJobRoleId }),
+      createJobRoleDraft: (title, method) => {
+        const id = `role-draft-${Date.now()}`;
+        set((state) => {
+          const template = state.jobRoles[0];
+          return {
+            selectedJobRoleId: id,
+            jobRoles: [
+              ...state.jobRoles,
+              {
+                ...template,
+                id,
+                code: `NB-DRAFT-${state.jobRoles.length + 1}`,
+                title,
+                standardizedTitle: title,
+                status: "draft",
+                version: "0.1",
+                effectiveFrom: "2026-09-01",
+                approvalHistory: [],
+              },
+            ],
+            auditOverlay: [
+              createAuditEvent(
+                "Job role draft created",
+                title,
+                "None",
+                `Draft via ${method}`,
+              ),
+              ...state.auditOverlay,
+            ],
+          };
+        });
+        return id;
+      },
+      submitJobRoleForReview: (roleId) =>
+        set((state) => {
+          const jobRoles = state.jobRoles.map((jobRole) =>
+            jobRole.id === roleId
+              ? { ...jobRole, status: "review" as const }
+              : jobRole,
+          );
+          return {
+            jobRoles,
+            auditOverlay: [
+              createAuditEvent(
+                "Role submitted for review",
+                roleId,
+                "Draft",
+                "Review",
+              ),
+              ...state.auditOverlay,
+            ],
+          };
+        }),
+      approveJobRole: (roleId) =>
+        set((state) => ({
+          jobRoles: state.jobRoles.map((jobRole) =>
+            jobRole.id === roleId
+              ? { ...jobRole, status: "approved" as const }
+              : jobRole,
+          ),
+          auditOverlay: [
+            createAuditEvent(
+              "Job role approved",
+              roleId,
+              "Review",
+              "Approved",
+            ),
+            ...state.auditOverlay,
+          ],
+        })),
+      publishJobRole: (roleId) =>
+        set((state) => ({
+          jobRoles: state.jobRoles.map((jobRole) =>
+            jobRole.id === roleId
+              ? { ...jobRole, status: "published" as const }
+              : jobRole,
+          ),
+          auditOverlay: [
+            createAuditEvent(
+              "Job role published",
+              roleId,
+              "Approved",
+              "Published",
+            ),
+            ...state.auditOverlay,
+          ],
+        })),
+      reviewParsedStatement: (statementId, decision) =>
+        set((state) => {
+          const parsedStatements = state.parsedStatements.map((statement) =>
+            statement.id === statementId
+              ? { ...statement, reviewStatus: decision }
+              : statement,
+          );
+          const snapshot = buildRoleIntelligenceSnapshot(
+            state.selectedEmployeeId,
+            state.employeeRoleAssignments,
+            state.jobRoles,
+            parsedStatements,
+          );
+          return {
+            parsedStatements,
+            learningRecommendations: snapshot.learningRecommendations,
+            auditOverlay: [
+              createAuditEvent(
+                "Parsed statement reviewed",
+                statementId,
+                "Pending",
+                decision,
+              ),
+              ...state.auditOverlay,
+            ],
+          };
+        }),
+      approveRoleAssignment: (assignmentId) =>
+        set((state) => {
+          const employeeRoleAssignments = state.employeeRoleAssignments.map(
+            (assignment) =>
+              assignment.id === assignmentId
+                ? {
+                    ...assignment,
+                    status: "active" as const,
+                    complianceValidated: true,
+                  }
+                : assignment,
+          );
+          const snapshot = buildRoleIntelligenceSnapshot(
+            state.selectedEmployeeId,
+            employeeRoleAssignments,
+            state.jobRoles,
+            state.parsedStatements,
+          );
+          return {
+            employeeRoleAssignments,
+            riskExposure: snapshot.riskExposure,
+            learningRecommendations: snapshot.learningRecommendations,
+            auditOverlay: [
+              createAuditEvent(
+                "Temporary role assignment approved",
+                assignmentId,
+                "Pending Compliance",
+                "Active",
+              ),
+              ...state.auditOverlay,
+            ],
+          };
+        }),
+      approveRiskExposure: () =>
+        set((state) => ({
+          riskExposure: {
+            ...state.riskExposure,
+            approvalStatus: "approved",
+          },
+          auditOverlay: [
+            createAuditEvent(
+              "Risk exposure approved",
+              state.riskExposure.id,
+              `${state.riskExposure.level} provisional`,
+              `${state.riskExposure.level} approved`,
+            ),
+            ...state.auditOverlay,
+          ],
+        })),
+      approveLearningRecommendation: (recommendationId) =>
+        set((state) => ({
+          learningRecommendations: state.learningRecommendations.map(
+            (recommendation) =>
+              recommendation.id === recommendationId
+                ? { ...recommendation, approvalStatus: "approved" as const }
+                : recommendation,
+          ),
+          auditOverlay: [
+            createAuditEvent(
+              "Learning recommendation approved",
+              recommendationId,
+              "Pending",
+              "Approved",
+            ),
+            ...state.auditOverlay,
+          ],
+        })),
+      reassessRoleIntelligence: () =>
+        set((state) => {
+          const snapshot = buildRoleIntelligenceSnapshot(
+            state.selectedEmployeeId,
+            state.employeeRoleAssignments,
+            state.jobRoles,
+            state.parsedStatements,
+          );
+          return {
+            riskExposure: snapshot.riskExposure,
+            learningRecommendations: snapshot.learningRecommendations,
+            auditOverlay: [
+              createAuditEvent(
+                "Role intelligence reassessed",
+                getEmployeeById(state.selectedEmployeeId).name,
+                "Previous snapshot",
+                "Current role and policy snapshot",
+              ),
+              ...state.auditOverlay,
+            ],
+          };
+        }),
       resetDemo: () => set(initialState),
     }),
     {
       name: "vidda-compliance-demo-v1",
+      version: 3,
+      migrate: (persistedState) => ({
+        ...initialState,
+        ...(persistedState as Partial<DemoState>),
+        jobRoles: mergePersistedJobRoles(
+          (persistedState as Partial<DemoState>)?.jobRoles,
+        ),
+        selectedEmployeeId:
+          (persistedState as Partial<DemoState>)?.selectedEmployeeId ??
+          initialState.selectedEmployeeId,
+        parsedStatements:
+          (persistedState as Partial<DemoState>)?.parsedStatements ??
+          initialState.parsedStatements,
+        employeeRoleAssignments:
+          (persistedState as Partial<DemoState>)?.employeeRoleAssignments ??
+          initialState.employeeRoleAssignments,
+        riskExposure:
+          (persistedState as Partial<DemoState>)?.riskExposure ??
+          initialState.riskExposure,
+        learningRecommendations:
+          (persistedState as Partial<DemoState>)?.learningRecommendations ??
+          initialState.learningRecommendations,
+      }),
       partialize: (state) => ({
         role: state.role,
         stage: state.stage,
@@ -249,6 +613,13 @@ export const useDemoStore = create<DemoState>()(
         generatedCaseStatus: state.generatedCaseStatus,
         campaign: state.campaign,
         auditOverlay: state.auditOverlay,
+        jobRoles: state.jobRoles,
+        parsedStatements: state.parsedStatements,
+        employeeRoleAssignments: state.employeeRoleAssignments,
+        selectedEmployeeId: state.selectedEmployeeId,
+        selectedJobRoleId: state.selectedJobRoleId,
+        riskExposure: state.riskExposure,
+        learningRecommendations: state.learningRecommendations,
       }),
     },
   ),

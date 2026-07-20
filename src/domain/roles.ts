@@ -8,7 +8,7 @@ export type NavigationItem = {
 
 export const demoUsers: Record<DemoRole, DemoUser> = {
   employee: {
-    id: "emp-anna",
+    id: "emp-0001",
     name: "Anna Kowalska",
     email: "anna.kowalska@nordbank.demo",
     role: "employee",
@@ -72,6 +72,11 @@ export const employeeNavigation: NavigationItem[] = [
 
 export const officerNavigation: NavigationItem[] = [
   { label: "Overview", slug: "overview", icon: "solar:widget-5-linear" },
+  { label: "Role Catalog", slug: "role-catalog", icon: "solar:case-minimalistic-linear" },
+  { label: "JD Parser", slug: "job-description-parser", icon: "solar:document-text-linear" },
+  { label: "Role Mapping", slug: "role-mapping", icon: "solar:users-group-two-rounded-linear" },
+  { label: "Learning Plans", slug: "role-learning-plans", icon: "solar:square-academic-cap-linear" },
+  { label: "Traceability", slug: "traceability", icon: "solar:route-linear" },
   { label: "AI Coach", slug: "ai-coach", icon: "solar:chat-round-dots-linear" },
   { label: "Daily Cases", slug: "daily-cases", icon: "solar:case-round-linear" },
   {

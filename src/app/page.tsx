@@ -85,7 +85,7 @@ export default function Home() {
           initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3, delay: 0.1, ease: "easeOut" }}
-          className="relative"
+          className="relative lg:pb-16"
         >
           <div className="rounded-[2rem] border border-white/12 bg-white/[0.06] p-3 shadow-2xl shadow-black/20 backdrop-blur-xl">
             <div className="rounded-[1.4rem] bg-[#f7f8f3] p-5 text-[var(--vidda-text-primary)] sm:p-7">
@@ -129,7 +129,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-          <div className="absolute -bottom-5 -left-5 hidden rounded-xl border border-white/12 bg-[#244943] px-4 py-3 shadow-xl lg:block">
+          <div className="absolute bottom-0 -left-5 hidden rounded-xl border border-white/12 bg-[#244943] px-4 py-3 shadow-xl lg:block">
             <p className="text-[10px] text-white/45">Latest signal</p>
             <p className="mt-1 flex items-center gap-2 text-xs font-bold">
               <Icon icon="solar:danger-triangle-linear" className="text-amber-300" />
@@ -140,7 +140,6 @@ export default function Home() {
       </section>
       <footer className="relative mx-auto flex max-w-7xl flex-col gap-2 border-t border-white/10 px-5 py-5 text-[10px] text-white/35 sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <p>This prototype uses simulated data and predefined AI responses.</p>
-        <p>The assistant does not replace authorized Compliance, Legal or Risk functions.</p>
       </footer>
     </main>
   );

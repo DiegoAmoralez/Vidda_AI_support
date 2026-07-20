@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import { useState } from "react";
 import {
   Area,
   AreaChart,
@@ -25,37 +26,201 @@ import {
 import { bankMetrics, readinessTrend } from "@/data/seed";
 import { useDemoStore } from "@/store/demo-store";
 
-const kpis = [
-  ["Overall readiness", `${bankMetrics.readiness}%`, "Target 85%", "solar:shield-check-linear"],
-  ["Employees assessed", "1,248", "93% of scope", "solar:users-group-rounded-linear"],
-  ["Active this week", "84%", "+5% vs last week", "solar:bolt-linear"],
-  ["High-risk employees", "46", "24 in Corporate", "solar:danger-triangle-linear"],
-  ["Critical gaps", "7", "2 newly detected", "solar:graph-down-linear"],
-  ["Cases completed", "8,420", "76% daily completion", "solar:case-round-linear"],
-  ["Average score", "76%", "+3% this month", "solar:chart-square-linear"],
-  ["Update coverage", "68%", "87 require action", "solar:refresh-circle-linear"],
-];
+const countrySnapshots: Record<
+  string,
+  {
+    readiness: number;
+    employees: number;
+    highRisk: number;
+    gaps: number;
+    updateCoverage: number;
+  }
+> = {
+  "All countries": { readiness: bankMetrics.readiness, employees: 1248, highRisk: 46, gaps: 7, updateCoverage: 68 },
+  Poland: { readiness: 74, employees: 318, highRisk: 18, gaps: 5, updateCoverage: 61 },
+  Austria: { readiness: 82, employees: 146, highRisk: 4, gaps: 2, updateCoverage: 78 },
+  Germany: { readiness: 80, employees: 242, highRisk: 7, gaps: 3, updateCoverage: 73 },
+  Sweden: { readiness: 85, employees: 105, highRisk: 2, gaps: 1, updateCoverage: 88 },
+  Netherlands: { readiness: 79, employees: 96, highRisk: 3, gaps: 2, updateCoverage: 76 },
+  "Czech Republic": { readiness: 72, employees: 87, highRisk: 6, gaps: 4, updateCoverage: 57 },
+};
+
+const roleSnapshots: Record<
+  string,
+  { employees: number; readinessDelta: number; highRisk: number; gaps: number }
+> = {
+  "Retail Banking Relationship Manager": { employees: 286, readinessDelta: -2, highRisk: 14, gaps: 4 },
+  "Corporate Banking Relationship Manager": { employees: 164, readinessDelta: -5, highRisk: 16, gaps: 5 },
+  "Branch Manager": { employees: 92, readinessDelta: 3, highRisk: 3, gaps: 2 },
+  "KYC Analyst": { employees: 138, readinessDelta: 1, highRisk: 5, gaps: 3 },
+  "AML Investigator": { employees: 64, readinessDelta: 5, highRisk: 2, gaps: 1 },
+  "Payments Operations Specialist": { employees: 174, readinessDelta: -1, highRisk: 4, gaps: 3 },
+  "Compliance Officer": { employees: 76, readinessDelta: 6, highRisk: 1, gaps: 1 },
+};
+
+const periodSnapshots: Record<
+  string,
+  { cases: string; active: string; average: string; trend: string }
+> = {
+  "30 days": { cases: "2,960", active: "88%", average: "77%", trend: "+2%" },
+  "90 days": { cases: "8,420", active: "84%", average: "76%", trend: "+9%" },
+  "180 days": { cases: "15,880", active: "81%", average: "75%", trend: "+13%" },
+  "Year to date": { cases: "20,410", active: "79%", average: "74%", trend: "+17%" },
+};
+
+const overviewFilters = [
+  {
+    id: "period",
+    label: "Period",
+    defaultValue: "90 days",
+    options: ["30 days", "90 days", "180 days", "Year to date"],
+  },
+  {
+    id: "unit",
+    label: "Business unit",
+    defaultValue: "All business units",
+    options: [
+      "All business units",
+      "Retail Banking",
+      "Corporate Banking",
+      "Payments & Operations",
+      "Risk & Compliance",
+      "Technology",
+    ],
+  },
+  {
+    id: "country",
+    label: "Country",
+    defaultValue: "All countries",
+    options: [
+      "All countries",
+      "Poland",
+      "Austria",
+      "Germany",
+      "Sweden",
+      "Netherlands",
+      "Czech Republic",
+    ],
+  },
+  {
+    id: "jobRole",
+    label: "Job role",
+    defaultValue: "All job roles",
+    options: [
+      "All job roles",
+      "Retail Banking Relationship Manager",
+      "Corporate Banking Relationship Manager",
+      "Branch Manager",
+      "KYC Analyst",
+      "AML Investigator",
+      "Payments Operations Specialist",
+      "Compliance Officer",
+    ],
+  },
+] as const;
+
+type OverviewFilterId = (typeof overviewFilters)[number]["id"];
 
 export const ComplianceOverview = () => {
   const riskAlertVisible = useDemoStore((state) => state.riskAlertVisible);
+  const [filters, setFilters] = useState<Record<OverviewFilterId, string>>({
+    period: "90 days",
+    unit: "All business units",
+    country: "All countries",
+    jobRole: "All job roles",
+  });
+  const hasActiveScope = overviewFilters.some(
+    (filter) => filters[filter.id] !== filter.defaultValue,
+  );
+  const countrySnapshot = countrySnapshots[filters.country];
+  const roleSnapshot = roleSnapshots[filters.jobRole];
+  const periodSnapshot = periodSnapshots[filters.period];
+  const scopedReadiness = Math.max(
+    0,
+    Math.min(
+      100,
+      countrySnapshot.readiness + (roleSnapshot?.readinessDelta ?? 0),
+    ),
+  );
+  const scopedEmployees = roleSnapshot?.employees ?? countrySnapshot.employees;
+  const kpis = [
+    ["Overall readiness", `${scopedReadiness}%`, "Target 85%", "solar:shield-check-linear"],
+    ["Employees assessed", scopedEmployees.toLocaleString("en-US"), `${filters.country} scope`, "solar:users-group-rounded-linear"],
+    ["Active this week", periodSnapshot.active, `${filters.period} view`, "solar:bolt-linear"],
+    ["High-risk employees", String(roleSnapshot?.highRisk ?? countrySnapshot.highRisk), filters.jobRole, "solar:danger-triangle-linear"],
+    ["Critical gaps", String(roleSnapshot?.gaps ?? countrySnapshot.gaps), `${filters.unit} coverage`, "solar:graph-down-linear"],
+    ["Cases completed", periodSnapshot.cases, `${filters.period} total`, "solar:case-round-linear"],
+    ["Average score", periodSnapshot.average, `${filters.country} assessment scope`, "solar:chart-square-linear"],
+    ["Update coverage", `${countrySnapshot.updateCoverage}%`, `${100 - countrySnapshot.updateCoverage}% require action`, "solar:refresh-circle-linear"],
+  ];
+
+  const handleFilterChange = (filterId: OverviewFilterId, value: string) => {
+    setFilters((current) => ({ ...current, [filterId]: value }));
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      period: "90 days",
+      unit: "All business units",
+      country: "All countries",
+      jobRole: "All job roles",
+    });
+  };
+
   return (
     <div className="space-y-7">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <div>
         <div>
           <p className="font-mono text-[10px] font-bold uppercase tracking-[0.17em] text-muted-foreground">NordBank International · Group view</p>
           <h1 className="mt-2 text-3xl font-extrabold tracking-[-0.04em] sm:text-4xl">Compliance Capability Overview</h1>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {["90 days", "All units", "All countries", "All roles"].map((value, index) => (
-            <Select key={value} defaultValue={value}>
-              <SelectTrigger className="h-9 w-auto min-w-28 bg-white text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={value}>{value}</SelectItem>
-                <SelectItem value={`Filtered ${index}`}>Corporate Banking</SelectItem>
-                <SelectItem value={`Alternative ${index}`}>Poland</SelectItem>
-              </SelectContent>
-            </Select>
+      </div>
+
+      <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[.7fr_1fr_.8fr_1.25fr_auto] xl:items-end">
+          {overviewFilters.map((filter) => (
+            <div key={filter.id}>
+              <p className="mb-2 font-mono text-[8px] font-bold uppercase tracking-wider text-muted-foreground">
+                {filter.label}
+              </p>
+              <Select
+                value={filters[filter.id]}
+                onValueChange={(value) => handleFilterChange(filter.id, value)}
+              >
+                <SelectTrigger className="h-10 w-full bg-white text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {filter.options.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           ))}
+          <Button
+            variant="ghost"
+            className="h-10 gap-2"
+            disabled={!hasActiveScope}
+            onClick={handleResetFilters}
+          >
+            <Icon icon="solar:restart-linear" />
+            Reset
+          </Button>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-3">
+          <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+            Current scope
+          </span>
+          {[filters.period, filters.unit, filters.country, filters.jobRole].map(
+            (value) => (
+              <Badge key={value} variant="secondary">
+                {value}
+              </Badge>
+            ),
+          )}
         </div>
       </div>
 
@@ -74,7 +239,7 @@ export const ComplianceOverview = () => {
       <div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
         <Card className="shadow-none">
           <CardContent className="p-6">
-            <div className="flex items-start justify-between"><div><p className="text-sm font-extrabold">Readiness trend</p><p className="mt-1 text-xs text-muted-foreground">Practical capability signals · last 90 days</p></div><Badge variant="secondary">+9%</Badge></div>
+            <div className="flex items-start justify-between"><div><p className="text-sm font-extrabold">Readiness trend</p><p className="mt-1 text-xs text-muted-foreground">Practical capability signals · {filters.period.toLowerCase()}</p></div><Badge variant="secondary">{periodSnapshot.trend}</Badge></div>
             <div className="mt-5 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={readinessTrend}>

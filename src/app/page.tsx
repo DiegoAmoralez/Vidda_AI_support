@@ -31,7 +31,7 @@ export default function Home() {
       <div className="pointer-events-none absolute -left-24 top-1/3 size-[28rem] rounded-full bg-[var(--vidda-primary)]/8 blur-3xl" />
 
       <header className="relative mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 border-b border-[var(--vidda-border)]/70 bg-white/70 px-5 backdrop-blur-md sm:px-8">
-        <ViddaMark className="max-w-[240px] sm:max-w-[260px]" />
+        <ViddaMark />
         <div className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
           <span className="size-1.5 rounded-full bg-[var(--vidda-accent)]" />
           NordBank International · Simulated environment

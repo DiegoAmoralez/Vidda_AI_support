@@ -53,9 +53,12 @@ const parseModelJson = (text: string) => {
 };
 
 export async function GET() {
+  const apiKey = process.env.MISTRAL_API_KEY?.trim();
   return NextResponse.json({
-    configured: Boolean(process.env.MISTRAL_API_KEY),
+    configured: Boolean(apiKey),
     model: process.env.MISTRAL_MODEL ?? "mistral-small-latest",
+    runtime: process.env.VERCEL ? "vercel" : "local",
+    vercelEnv: process.env.VERCEL_ENV ?? null,
   });
 }
 
@@ -74,7 +77,7 @@ export async function POST(request: Request) {
     return NextResponse.json(getDemoKnowledgeAnswer(question));
   }
 
-  const apiKey = process.env.MISTRAL_API_KEY;
+  const apiKey = process.env.MISTRAL_API_KEY?.trim();
   if (!apiKey) {
     return NextResponse.json({
       ...getDemoKnowledgeAnswer(question),

@@ -59,7 +59,7 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
   const sidebar = (
     <aside className="flex h-full flex-col bg-[var(--sidebar)] text-[var(--sidebar-foreground)]">
       <div className="flex h-20 items-center overflow-visible border-b border-white/10 px-4">
-        <ViddaMark inverse className="max-w-[216px]" />
+        <ViddaMark inverse className="max-w-none" />
       </div>
       <div className="border-b border-white/10 px-4 py-4">
         <div className="rounded-xl bg-white/[0.06] p-3">

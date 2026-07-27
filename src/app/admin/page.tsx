@@ -17,6 +17,8 @@ export default function AdminPage() {
   const setNeuralEnabled = useAiSettingsStore((state) => state.setNeuralEnabled);
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [model, setModel] = useState("mistral-small-latest");
+  const [runtime, setRuntime] = useState<"local" | "vercel" | null>(null);
+  const [vercelEnv, setVercelEnv] = useState<string | null>(null);
 
   useEffect(() => {
     const loadStatus = async () => {
@@ -25,9 +27,13 @@ export default function AdminPage() {
         const payload = (await response.json()) as {
           configured?: boolean;
           model?: string;
+          runtime?: "local" | "vercel";
+          vercelEnv?: string | null;
         };
         setConfigured(Boolean(payload.configured));
         if (payload.model) setModel(payload.model);
+        setRuntime(payload.runtime ?? null);
+        setVercelEnv(payload.vercelEnv ?? null);
       } catch {
         setConfigured(false);
       }
@@ -98,12 +104,34 @@ export default function AdminPage() {
                 ) : (
                   <Badge variant="destructive">MISTRAL_API_KEY missing</Badge>
                 )}
+                {runtime ? (
+                  <Badge variant="outline">
+                    Runtime: {runtime}
+                    {vercelEnv ? ` · ${vercelEnv}` : ""}
+                  </Badge>
+                ) : null}
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
                 Model: <span className="font-mono">{model}</span>
               </p>
+              {!configured && runtime === "local" ? (
+                <p className="mt-2 text-xs leading-5 text-amber-800">
+                  Local <span className="font-mono">next dev</span> does not read
+                  Vercel Dashboard variables. Put the key in{" "}
+                  <span className="font-mono">.env.local</span> and restart the
+                  dev server. Vercel vars apply only after deploy.
+                </p>
+              ) : null}
+              {!configured && runtime === "vercel" ? (
+                <p className="mt-2 text-xs leading-5 text-amber-800">
+                  Key is missing in this Vercel environment
+                  {vercelEnv ? ` (${vercelEnv})` : ""}. Add{" "}
+                  <span className="font-mono">MISTRAL_API_KEY</span> for
+                  Production / Preview / Development as needed, then redeploy.
+                </p>
+              ) : null}
               <p className="mt-2 text-xs text-muted-foreground">
-                In Vercel → Project → Settings → Environment Variables add{" "}
+                Vercel → Project → Settings → Environment Variables →{" "}
                 <span className="font-mono">MISTRAL_API_KEY</span>
                 . Optional: <span className="font-mono">MISTRAL_MODEL</span>.
               </p>

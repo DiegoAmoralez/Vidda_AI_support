@@ -154,8 +154,79 @@ export const defaultCampaign: Campaign = {
   status: "Draft",
 };
 
-export const notifications = [
-  { id: "n1", title: "87 employees require reassessment", detail: "Internal AML Policy v4.7", time: "8 min ago", level: "warning" },
-  { id: "n2", title: "AI-generated cases ready for review", detail: "2 draft cases · Enhanced Due Diligence", time: "41 min ago", level: "info" },
-  { id: "n3", title: "Critical capability gap detected", detail: "Corporate Banking · AML Escalation", time: "2 hours ago", level: "critical" },
+export type DemoNotification = {
+  id: string;
+  title: string;
+  detail: string;
+  time: string;
+  level: "info" | "warning" | "critical";
+  href: string;
+};
+
+export const employeeNotifications: DemoNotification[] = [
+  {
+    id: "emp-n1",
+    title: "Today’s adaptive case is ready",
+    detail: "High-value cash transaction · AML Policy v4.7",
+    time: "12 min ago",
+    level: "info",
+    href: "/portal/ai-coach",
+  },
+  {
+    id: "emp-n2",
+    title: "Escalation practice needs attention",
+    detail: "Your AML Escalation score is 54% · target 80%",
+    time: "1 hour ago",
+    level: "warning",
+    href: "/portal/my-progress",
+  },
+  {
+    id: "emp-n3",
+    title: "Policy update assigned to your role",
+    detail: "Complete the tipping-off microlearning by Friday",
+    time: "Yesterday",
+    level: "critical",
+    href: "/portal/my-cases",
+  },
 ];
+
+export const complianceNotifications: DemoNotification[] = [
+  {
+    id: "cmp-n1",
+    title: "87 employees require reassessment",
+    detail: "Internal AML Policy v4.7",
+    time: "8 min ago",
+    level: "warning",
+    href: "/portal/regulatory-updates",
+  },
+  {
+    id: "cmp-n2",
+    title: "AI-generated cases ready for review",
+    detail: "2 draft cases · Enhanced Due Diligence",
+    time: "41 min ago",
+    level: "info",
+    href: "/portal/ai-improvement",
+  },
+  {
+    id: "cmp-n3",
+    title: "Critical capability gap detected",
+    detail: "Corporate Banking · AML Escalation",
+    time: "2 hours ago",
+    level: "critical",
+    href: "/portal/risk-analytics",
+  },
+  {
+    id: "cmp-n4",
+    title: "Expert override pending approval",
+    detail: "Assessment RES-2281 · Julia Meyer",
+    time: "3 hours ago",
+    level: "warning",
+    href: "/portal/audit-trail",
+  },
+];
+
+/** @deprecated Prefer role-specific lists via getNotificationsForRole */
+export const notifications = complianceNotifications;
+
+export const getNotificationsForRole = (role: "employee" | "compliance" | string) =>
+  role === "employee" ? employeeNotifications : complianceNotifications;

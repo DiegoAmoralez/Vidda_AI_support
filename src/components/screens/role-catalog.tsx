@@ -184,11 +184,11 @@ const RoleDetail = ({
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap gap-2">
-            <RoleStatusBadge status={role.status} />
-            <Badge className="border-white/15 bg-white/10 text-white">
+            <RoleStatusBadge status={role.status} tone="onDark" />
+            <Badge className="border-white/35 bg-white/15 text-white capitalize hover:bg-white/20">
               {role.defenceLine} line
             </Badge>
-            <Badge className="border-white/15 bg-white/10 text-white">
+            <Badge className="border-white/35 bg-white/15 text-white capitalize hover:bg-white/20">
               {role.criticality} criticality
             </Badge>
           </div>
@@ -354,9 +354,36 @@ const RoleCreationWizard = ({
   );
 };
 
-const RoleStatusBadge = ({ status }: { status: JobRole["status"] }) => (
-  <Badge variant={status === "published" ? "outline" : status === "review" ? "destructive" : "secondary"} className="capitalize">{status}</Badge>
-);
+const RoleStatusBadge = ({
+  status,
+  tone = "default",
+}: {
+  status: JobRole["status"];
+  tone?: "default" | "onDark";
+}) => {
+  if (tone === "onDark") {
+    return (
+      <Badge className="border-transparent bg-white capitalize text-[var(--vidda-primary)] hover:bg-white">
+        {status}
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge
+      variant={
+        status === "published"
+          ? "default"
+          : status === "review"
+            ? "destructive"
+            : "secondary"
+      }
+      className="capitalize"
+    >
+      {status}
+    </Badge>
+  );
+};
 
 const RoleList = ({ title, items, icon }: { title: string; items: string[]; icon: string }) => (
   <div className="rounded-xl border p-5"><p className="flex items-center gap-2 text-sm font-extrabold"><Icon icon={icon} className="text-[var(--vidda-primary)]" />{title}</p><ul className="mt-4 space-y-2">{items.map((item) => <li key={item} className="flex gap-2 text-xs leading-5 text-muted-foreground"><span className="mt-2 size-1 shrink-0 rounded-full bg-current" />{item}</li>)}</ul></div>

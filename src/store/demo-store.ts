@@ -36,6 +36,16 @@ import { recommendLearning } from "@/lib/role-intelligence/recommend-learning";
 
 type SimulationPreset = "correct" | "partial" | "critical";
 
+export type GeneratedDraftCase = {
+  id: string;
+  code: string;
+  title: string;
+  scenario: string;
+  status: "expert-review" | "approved" | "rejected";
+  source: string;
+  createdAt: string;
+};
+
 type DemoState = {
   role: DemoRole;
   stage: CaseSessionStage;
@@ -48,7 +58,7 @@ type DemoState = {
   streak: number;
   regulatoryUpdateTriggered: boolean;
   riskAlertVisible: boolean;
-  generatedCaseStatus: "idle" | "expert-review" | "approved";
+  generatedDraftCases: GeneratedDraftCase[];
   campaign: Campaign;
   auditOverlay: AuditEvent[];
   jobRoles: JobRole[];
@@ -69,8 +79,9 @@ type DemoState = {
   finishSession: () => void;
   triggerRegulatoryUpdate: () => void;
   showRiskAlert: () => void;
-  generateCase: () => void;
-  approveGeneratedCase: () => void;
+  generateCase: () => GeneratedDraftCase;
+  approveGeneratedCase: (caseId: string) => void;
+  rejectGeneratedCase: (caseId: string) => void;
   launchCampaign: () => void;
   completeCampaign: () => void;
   setSelectedEmployeeId: (employeeId: string) => void;
@@ -176,7 +187,7 @@ const initialState = {
   streak: 12,
   regulatoryUpdateTriggered: false,
   riskAlertVisible: true,
-  generatedCaseStatus: "idle" as const,
+  generatedDraftCases: [] as GeneratedDraftCase[],
   campaign: defaultCampaign,
   auditOverlay: [] as AuditEvent[],
   jobRoles: seededJobRoles,
@@ -206,6 +217,30 @@ const createAuditEvent = (
   source: "Demo Controls",
   status: "Complete",
 });
+
+const DRAFT_CASE_TEMPLATES = [
+  {
+    codePrefix: "TIP-OFF",
+    title: "Tipping-off under customer pressure",
+    scenario:
+      "A corporate customer asks why a high-value transaction is pending and whether the bank intends to file a suspicious transaction report. Choose a response that protects the investigation while maintaining appropriate customer communication.",
+    source: "AI Improvement · tipping-off signal",
+  },
+  {
+    codePrefix: "EDD-CASH",
+    title: "Cash delay without tipping-off",
+    scenario:
+      "During a branch conversation, a relationship manager is pressed for “what Compliance is checking.” The employee must explain the delay without revealing investigation activity and escalate through the approved channel.",
+    source: "AI Improvement · escalation wording gap",
+  },
+  {
+    codePrefix: "AML-COMMS",
+    title: "Approved wording for pending review",
+    scenario:
+      "A client demands confirmation that “nothing suspicious was found.” Select the approved communication path that avoids tipping-off, keeps the case pending where required, and records the interaction for audit.",
+    source: "AI Improvement · communication control",
+  },
+] as const;
 
 export const useDemoStore = create<DemoState>()(
   persist(
@@ -320,22 +355,72 @@ export const useDemoStore = create<DemoState>()(
           ],
         })),
       showRiskAlert: () => set({ riskAlertVisible: true }),
-      generateCase: () =>
-        set((state) => ({
-          generatedCaseStatus: "expert-review",
+      generateCase: () => {
+        const state = get();
+        const nextIndex = state.generatedDraftCases.length + 1;
+        const template =
+          DRAFT_CASE_TEMPLATES[(nextIndex - 1) % DRAFT_CASE_TEMPLATES.length];
+        const draft: GeneratedDraftCase = {
+          id: `draft-${Date.now()}-${nextIndex}`,
+          code: `${template.codePrefix}-${String(nextIndex).padStart(2, "0")}`,
+          title: template.title,
+          scenario: template.scenario,
+          status: "expert-review",
+          source: template.source,
+          createdAt: new Date().toLocaleString("en-GB"),
+        };
+        set({
+          generatedDraftCases: [draft, ...state.generatedDraftCases],
           auditOverlay: [
-            createAuditEvent("Case generated", "EDD-CASH-02", "None", "Expert review"),
+            createAuditEvent(
+              "Case generated",
+              draft.code,
+              "None",
+              "Expert review",
+            ),
             ...state.auditOverlay,
           ],
-        })),
-      approveGeneratedCase: () =>
-        set((state) => ({
-          generatedCaseStatus: "approved",
-          auditOverlay: [
-            createAuditEvent("Case approved", "EDD-CASH-02", "Expert review", "Approved"),
-            ...state.auditOverlay,
-          ],
-        })),
+        });
+        return draft;
+      },
+      approveGeneratedCase: (caseId) =>
+        set((state) => {
+          const target = state.generatedDraftCases.find((item) => item.id === caseId);
+          if (!target) return state;
+          return {
+            generatedDraftCases: state.generatedDraftCases.map((item) =>
+              item.id === caseId ? { ...item, status: "approved" as const } : item,
+            ),
+            auditOverlay: [
+              createAuditEvent(
+                "Case approved",
+                target.code,
+                "Expert review",
+                "Approved",
+              ),
+              ...state.auditOverlay,
+            ],
+          };
+        }),
+      rejectGeneratedCase: (caseId) =>
+        set((state) => {
+          const target = state.generatedDraftCases.find((item) => item.id === caseId);
+          if (!target) return state;
+          return {
+            generatedDraftCases: state.generatedDraftCases.map((item) =>
+              item.id === caseId ? { ...item, status: "rejected" as const } : item,
+            ),
+            auditOverlay: [
+              createAuditEvent(
+                "Case rejected",
+                target.code,
+                "Expert review",
+                "Rejected",
+              ),
+              ...state.auditOverlay,
+            ],
+          };
+        }),
       launchCampaign: () =>
         set((state) => ({
           campaign: { ...state.campaign, status: "Active" },
@@ -577,29 +662,47 @@ export const useDemoStore = create<DemoState>()(
     }),
     {
       name: "vidda-compliance-demo-v1",
-      version: 3,
-      migrate: (persistedState) => ({
-        ...initialState,
-        ...(persistedState as Partial<DemoState>),
-        jobRoles: mergePersistedJobRoles(
-          (persistedState as Partial<DemoState>)?.jobRoles,
-        ),
-        selectedEmployeeId:
-          (persistedState as Partial<DemoState>)?.selectedEmployeeId ??
-          initialState.selectedEmployeeId,
-        parsedStatements:
-          (persistedState as Partial<DemoState>)?.parsedStatements ??
-          initialState.parsedStatements,
-        employeeRoleAssignments:
-          (persistedState as Partial<DemoState>)?.employeeRoleAssignments ??
-          initialState.employeeRoleAssignments,
-        riskExposure:
-          (persistedState as Partial<DemoState>)?.riskExposure ??
-          initialState.riskExposure,
-        learningRecommendations:
-          (persistedState as Partial<DemoState>)?.learningRecommendations ??
-          initialState.learningRecommendations,
-      }),
+      version: 4,
+      migrate: (persistedState) => {
+        const previous = persistedState as Partial<DemoState> & {
+          generatedCaseStatus?: "idle" | "expert-review" | "approved";
+        };
+        const migratedCases =
+          previous.generatedDraftCases ??
+          (previous.generatedCaseStatus &&
+          previous.generatedCaseStatus !== "idle"
+            ? [
+                {
+                  id: "draft-migrated-edd-cash-02",
+                  code: "EDD-CASH-02",
+                  title: "Tipping-off under customer pressure",
+                  scenario:
+                    "A customer asks why a high-value transaction is pending and whether the bank intends to file a suspicious transaction report. Choose a response that protects the investigation while maintaining appropriate customer communication.",
+                  status: previous.generatedCaseStatus,
+                  source: "Migrated demo draft",
+                  createdAt: "Migrated",
+                } satisfies GeneratedDraftCase,
+              ]
+            : []);
+
+        return {
+          ...initialState,
+          ...previous,
+          jobRoles: mergePersistedJobRoles(previous?.jobRoles),
+          selectedEmployeeId:
+            previous?.selectedEmployeeId ?? initialState.selectedEmployeeId,
+          parsedStatements:
+            previous?.parsedStatements ?? initialState.parsedStatements,
+          employeeRoleAssignments:
+            previous?.employeeRoleAssignments ??
+            initialState.employeeRoleAssignments,
+          riskExposure: previous?.riskExposure ?? initialState.riskExposure,
+          learningRecommendations:
+            previous?.learningRecommendations ??
+            initialState.learningRecommendations,
+          generatedDraftCases: migratedCases,
+        };
+      },
       partialize: (state) => ({
         role: state.role,
         stage: state.stage,
@@ -610,7 +713,7 @@ export const useDemoStore = create<DemoState>()(
         capabilityScore: state.capabilityScore,
         streak: state.streak,
         regulatoryUpdateTriggered: state.regulatoryUpdateTriggered,
-        generatedCaseStatus: state.generatedCaseStatus,
+        generatedDraftCases: state.generatedDraftCases,
         campaign: state.campaign,
         auditOverlay: state.auditOverlay,
         jobRoles: state.jobRoles,

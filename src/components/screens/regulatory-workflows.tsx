@@ -29,6 +29,7 @@ import { policyDocuments } from "@/data/seed";
 import type { PolicyDocument } from "@/domain/types";
 import { cn } from "@/lib/utils";
 import { useDemoStore } from "@/store/demo-store";
+import { RecommendationReviewDialog } from "@/components/screens/recommendation-review-dialog";
 
 export const KnowledgeBaseScreen = () => {
   const [query, setQuery] = useState("");
@@ -88,13 +89,114 @@ export const DailyCasesScreen = () => (
   </Page>
 );
 
+const TIPPING_OFF_RECOMMENDATION = {
+  title: "Tipping-off restrictions are frequently misunderstood",
+  summary:
+    "38% of employees selected “Notify the customer” in suspicious transaction scenarios. Create a targeted microlearning case explaining tipping-off restrictions.",
+} as const;
+
 export const AiImprovementScreen = () => {
-  const { generatedCaseStatus, generateCase, approveGeneratedCase } = useDemoStore();
+  const {
+    generatedDraftCases,
+    generateCase,
+    approveGeneratedCase,
+    rejectGeneratedCase,
+  } = useDemoStore();
+  const [reviewOpen, setReviewOpen] = useState(false);
+
+  const handleGenerateDraft = () => {
+    const draft = generateCase();
+    toast.success(`Draft case ${draft.code} added for expert review`);
+  };
+
   return (
     <Page title="AI Improvement Center" eyebrow="Human-in-the-loop governance" description="AI proposes patterns and draft cases. Compliance experts validate every scoring or content change before publication.">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[["Low-confidence answers", "18"], ["Disputed assessments", "12"], ["Misunderstood policies", "7"], ["Human override rate", "2.8%"]].map(([label, value]) => <Card key={label} className="shadow-none"><CardContent className="p-5"><p className="text-xs text-muted-foreground">{label}</p><p className="metric-number mt-2 text-2xl font-extrabold">{value}</p></CardContent></Card>)}</div>
-      <Card className="border-amber-200 bg-amber-50/50 shadow-none"><CardContent className="p-6"><div className="flex flex-col gap-5 sm:flex-row sm:items-start"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-200 text-amber-950"><Icon icon="solar:magic-stick-3-linear" className="size-5" /></span><div className="flex-1"><div className="flex flex-wrap items-center gap-2"><Badge variant="destructive">Expert review required</Badge><Badge variant="outline">AI Suggested</Badge></div><h2 className="mt-4 text-xl font-extrabold">Tipping-off restrictions are frequently misunderstood</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">38% of employees selected “Notify the customer” in suspicious transaction scenarios. Create a targeted microlearning case explaining tipping-off restrictions.</p><div className="mt-5 flex flex-wrap gap-2"><Button variant="outline" onClick={() => toast.info("Recommendation evidence opened")}>Review recommendation</Button><Button onClick={() => { generateCase(); toast.success("Draft case generated for expert review"); }}>Generate draft case</Button><Button variant="ghost" onClick={() => toast.success("Assigned to Julia Meyer · AML expert")}>Assign to expert</Button></div></div></div></CardContent></Card>
-      <Card className="shadow-none"><CardContent className="p-6"><div className="flex items-start justify-between"><div><p className="text-lg font-extrabold">Generated case · EDD-CASH-02</p><p className="mt-1 text-xs text-muted-foreground">Prompt v12 · Knowledge base 2026.07.17 · Model 0.9 Demo</p></div><Badge variant={generatedCaseStatus === "approved" ? "outline" : "secondary"}>{generatedCaseStatus === "idle" ? "Not generated" : generatedCaseStatus}</Badge></div><div className="mt-5 rounded-xl bg-secondary p-5"><p className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">Draft scenario</p><p className="mt-3 text-sm leading-6">A customer asks why a high-value transaction is pending and whether the bank intends to file a suspicious transaction report. Choose a response that protects the investigation while maintaining appropriate customer communication.</p></div><div className="mt-5 flex flex-wrap justify-end gap-2"><Button variant="outline" disabled={generatedCaseStatus === "idle"} onClick={() => toast.info("Draft editor opened")}>Edit scoring logic</Button><Button variant="destructive" disabled={generatedCaseStatus === "idle"} onClick={() => toast.warning("Draft rejected and archived")}>Reject</Button><Button disabled={generatedCaseStatus !== "expert-review"} onClick={() => { approveGeneratedCase(); toast.success("Expert approved the draft case"); }}>Approve</Button></div></CardContent></Card>
+      <Card className="border-amber-200 bg-amber-50/50 shadow-none"><CardContent className="p-6"><div className="flex flex-col gap-5 sm:flex-row sm:items-start"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-200 text-amber-950"><Icon icon="solar:magic-stick-3-linear" className="size-5" /></span><div className="flex-1"><div className="flex flex-wrap items-center gap-2"><Badge variant="destructive">Expert review required</Badge><Badge variant="outline">AI Suggested</Badge></div><h2 className="mt-4 text-xl font-extrabold">{TIPPING_OFF_RECOMMENDATION.title}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{TIPPING_OFF_RECOMMENDATION.summary}</p><div className="mt-5 flex flex-wrap gap-2"><Button variant="outline" onClick={() => setReviewOpen(true)}>Review recommendation</Button><Button onClick={handleGenerateDraft}>Generate draft case</Button><Button variant="ghost" onClick={() => toast.success("Assigned to Julia Meyer · AML expert")}>Assign to expert</Button></div></div></div></CardContent></Card>
+
+      {generatedDraftCases.length === 0 ? (
+        <Card className="border-dashed shadow-none">
+          <CardContent className="p-8 text-center">
+            <p className="text-sm font-extrabold">No draft cases yet</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Generate a draft case from the recommendation above. Each click adds a new case.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {generatedDraftCases.map((draft) => (
+            <Card key={draft.id} className="shadow-none">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-lg font-extrabold">
+                      Generated case · {draft.code}
+                    </p>
+                    <p className="mt-1 text-sm font-bold">{draft.title}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {draft.source} · {draft.createdAt}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={
+                      draft.status === "approved"
+                        ? "outline"
+                        : draft.status === "rejected"
+                          ? "destructive"
+                          : "secondary"
+                    }
+                    className="capitalize"
+                  >
+                    {draft.status}
+                  </Badge>
+                </div>
+                <div className="mt-5 rounded-xl bg-secondary p-5">
+                  <p className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+                    Draft scenario
+                  </p>
+                  <p className="mt-3 text-sm leading-6">{draft.scenario}</p>
+                </div>
+                <div className="mt-5 flex flex-wrap justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    disabled={draft.status !== "expert-review"}
+                    onClick={() => toast.info(`Draft editor opened for ${draft.code}`)}
+                  >
+                    Edit scoring logic
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={draft.status !== "expert-review"}
+                    onClick={() => {
+                      rejectGeneratedCase(draft.id);
+                      toast.warning(`${draft.code} rejected and archived`);
+                    }}
+                  >
+                    Reject
+                  </Button>
+                  <Button
+                    disabled={draft.status !== "expert-review"}
+                    onClick={() => {
+                      approveGeneratedCase(draft.id);
+                      toast.success(`Expert approved ${draft.code}`);
+                    }}
+                  >
+                    Approve
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <RecommendationReviewDialog
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        title={TIPPING_OFF_RECOMMENDATION.title}
+        summary={TIPPING_OFF_RECOMMENDATION.summary}
+      />
     </Page>
   );
 };

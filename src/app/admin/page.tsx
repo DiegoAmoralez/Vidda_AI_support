@@ -1,11 +1,8 @@
 "use client";
 
-import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { ViddaMark } from "@/components/brand/vidda-mark";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -16,35 +13,19 @@ export default function AdminPage() {
   const neuralEnabled = useAiSettingsStore((state) => state.neuralEnabled);
   const setNeuralEnabled = useAiSettingsStore((state) => state.setNeuralEnabled);
   const [configured, setConfigured] = useState<boolean | null>(null);
-  const [model, setModel] = useState("mistral-small-latest");
-  const [runtime, setRuntime] = useState<"local" | "vercel" | null>(null);
-  const [vercelEnv, setVercelEnv] = useState<string | null>(null);
 
   useEffect(() => {
     const loadStatus = async () => {
       try {
         const response = await fetch("/api/knowledge");
-        const payload = (await response.json()) as {
-          configured?: boolean;
-          model?: string;
-          runtime?: "local" | "vercel";
-          vercelEnv?: string | null;
-        };
+        const payload = (await response.json()) as { configured?: boolean };
         setConfigured(Boolean(payload.configured));
-        if (payload.model) setModel(payload.model);
-        setRuntime(payload.runtime ?? null);
-        setVercelEnv(payload.vercelEnv ?? null);
       } catch {
         setConfigured(false);
       }
     };
     void loadStatus();
   }, []);
-
-  const handleToggle = (enabled: boolean) => {
-    setNeuralEnabled(enabled);
-    toast.success(enabled ? "Neural answers enabled" : "Demo script answers only");
-  };
 
   return (
     <main className="min-h-screen bg-[var(--vidda-background)] px-5 py-10 sm:px-8">
@@ -57,84 +38,24 @@ export default function AdminPage() {
         </div>
 
         <div>
-          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.17em] text-muted-foreground">
-            Test controls
-          </p>
-          <h1 className="mt-2 font-heading text-3xl font-extrabold tracking-[-0.04em] text-[var(--vidda-primary-dark)]">
+          <h1 className="font-heading text-3xl font-extrabold tracking-[-0.04em] text-[var(--vidda-primary-dark)]">
             Admin
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Turn Mistral neural answers on or off for Knowledge Assistant tests.
-          </p>
         </div>
 
         <Card className="shadow-none">
-          <CardContent className="space-y-6 p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <Label htmlFor="neural-toggle" className="text-sm font-extrabold">
-                  Neural network (Mistral)
-                </Label>
-                <p className="text-xs leading-5 text-muted-foreground">
-                  When off, Knowledge Assistant uses local demo scripts only.
-                  When on, it calls Mistral if the Vercel env key is set.
-                </p>
-              </div>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="neural-toggle" className="text-sm font-extrabold">
+                Neural network
+              </Label>
               <Switch
                 id="neural-toggle"
                 checked={neuralEnabled}
-                onCheckedChange={handleToggle}
-                aria-label="Toggle neural network"
+                onCheckedChange={setNeuralEnabled}
+                aria-label="Neural network"
+                disabled={configured === false}
               />
-            </div>
-
-            <div className="rounded-2xl border bg-secondary/40 p-4 text-sm">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-bold">Status</span>
-                <Badge variant={neuralEnabled ? "default" : "secondary"}>
-                  {neuralEnabled ? "Enabled" : "Disabled"}
-                </Badge>
-                {configured === null ? (
-                  <Badge variant="outline">Checking key…</Badge>
-                ) : configured ? (
-                  <Badge variant="outline" className="gap-1">
-                    <Icon icon="solar:check-circle-linear" className="size-3.5" />
-                    MISTRAL_API_KEY set
-                  </Badge>
-                ) : (
-                  <Badge variant="destructive">MISTRAL_API_KEY missing</Badge>
-                )}
-                {runtime ? (
-                  <Badge variant="outline">
-                    Runtime: {runtime}
-                    {vercelEnv ? ` · ${vercelEnv}` : ""}
-                  </Badge>
-                ) : null}
-              </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Model: <span className="font-mono">{model}</span>
-              </p>
-              {!configured && runtime === "local" ? (
-                <p className="mt-2 text-xs leading-5 text-amber-800">
-                  Local <span className="font-mono">next dev</span> does not read
-                  Vercel Dashboard variables. Put the key in{" "}
-                  <span className="font-mono">.env.local</span> and restart the
-                  dev server. Vercel vars apply only after deploy.
-                </p>
-              ) : null}
-              {!configured && runtime === "vercel" ? (
-                <p className="mt-2 text-xs leading-5 text-amber-800">
-                  Key is missing in this Vercel environment
-                  {vercelEnv ? ` (${vercelEnv})` : ""}. Add{" "}
-                  <span className="font-mono">MISTRAL_API_KEY</span> for
-                  Production / Preview / Development as needed, then redeploy.
-                </p>
-              ) : null}
-              <p className="mt-2 text-xs text-muted-foreground">
-                Vercel → Project → Settings → Environment Variables →{" "}
-                <span className="font-mono">MISTRAL_API_KEY</span>
-                . Optional: <span className="font-mono">MISTRAL_MODEL</span>.
-              </p>
             </div>
           </CardContent>
         </Card>

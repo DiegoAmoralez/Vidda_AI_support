@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ViddaMark } from "@/components/brand/vidda-mark";
-import { DemoControls } from "@/components/demo/demo-controls";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,18 +22,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
-import {
   Sheet,
   SheetContent,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { notifications } from "@/data/seed";
+import { getNotificationsForRole } from "@/data/seed";
 import { demoUsers, getNavigation } from "@/domain/roles";
 import type { DemoRole } from "@/domain/types";
 import { cn } from "@/lib/utils";
@@ -46,14 +39,24 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
   const role = useDemoStore((state) => state.role);
   const setRole = useDemoStore((state) => state.setRole);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const user = demoUsers[role];
   const navigation = getNavigation(role);
+  const roleNotifications = getNotificationsForRole(role);
+  const notificationCount = roleNotifications.length;
+  const hasCritical = roleNotifications.some((item) => item.level === "critical");
 
   const handleRoleChange = (nextRole: DemoRole) => {
+    if (nextRole === role) return;
     setRole(nextRole);
     setMobileOpen(false);
     router.push(nextRole === "employee" ? "/portal/home" : "/portal/overview");
-    toast.success(`Demo role switched to ${demoUsers[nextRole].jobTitle}`);
+  };
+
+  const handleNotificationOpen = (href: string, title: string) => {
+    setNotificationsOpen(false);
+    router.push(href);
+    toast.message(title);
   };
 
   const sidebar = (
@@ -97,39 +100,50 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
         })}
       </nav>
       <div className="space-y-3 border-t border-white/10 p-3">
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="ghost" size="sm" className="justify-start gap-2 text-xs text-white/55 hover:bg-white/10 hover:text-white" onClick={() => toast.info("Vidda ecosystem: Index · Consulting · Marketplace · Automation")}>
-            <Icon icon="solar:widget-add-linear" />
-            Ecosystem
-          </Button>
-          <Button variant="ghost" size="sm" className="justify-start gap-2 text-xs text-white/55 hover:bg-white/10 hover:text-white" onClick={() => toast.info("Help center opened in demo mode")}>
-            <Icon icon="solar:question-circle-linear" />
-            Help
-          </Button>
+        <div
+          className="grid grid-cols-2 gap-1 rounded-full bg-white/[0.06] p-1"
+          role="group"
+          aria-label="Switch portal role"
+        >
+          <button
+            type="button"
+            onClick={() => handleRoleChange("employee")}
+            className={cn(
+              "rounded-full px-2.5 py-2 text-[11px] font-bold transition-colors",
+              role === "employee"
+                ? "bg-[var(--vidda-accent)] text-white"
+                : "text-white/55 hover:bg-white/[0.06] hover:text-white",
+            )}
+            aria-pressed={role === "employee"}
+          >
+            Regular user
+          </button>
+          <button
+            type="button"
+            onClick={() => handleRoleChange("compliance")}
+            className={cn(
+              "rounded-full px-2.5 py-2 text-[11px] font-bold transition-colors",
+              role !== "employee"
+                ? "bg-[var(--vidda-accent)] text-white"
+                : "text-white/55 hover:bg-white/[0.06] hover:text-white",
+            )}
+            aria-pressed={role !== "employee"}
+          >
+            Compliance manager
+          </button>
         </div>
-        <DemoControls />
-        <Select value={role} onValueChange={(value) => handleRoleChange(value as DemoRole)}>
-          <SelectTrigger className="h-auto border-white/10 bg-white/[0.06] px-2.5 py-2 text-left text-white hover:bg-white/10">
-            <div className="flex min-w-0 items-center gap-2">
-              <Avatar className="size-8">
-                <AvatarFallback className="bg-white/10 text-[11px] text-white">
-                  {user.initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <p className="truncate text-xs font-bold">{user.name}</p>
-                <p className="truncate text-[10px] text-white/45">{user.jobTitle}</p>
-              </div>
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            {(Object.keys(demoUsers) as DemoRole[]).map((roleKey) => (
-              <SelectItem key={roleKey} value={roleKey}>
-                {demoUsers[roleKey].jobTitle}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+        <div className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.06] px-2.5 py-2.5">
+          <Avatar className="size-9">
+            <AvatarFallback className="bg-white/10 text-[11px] text-white">
+              {user.initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <p className="truncate text-xs font-bold text-white">{user.name}</p>
+            <p className="truncate text-[10px] text-white/45">{user.jobTitle}</p>
+          </div>
+        </div>
       </div>
     </aside>
   );
@@ -181,22 +195,45 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
             </span>
             <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800">
               <Icon icon="solar:refresh-circle-linear" />
-              3 updates
+              {notificationCount} update{notificationCount === 1 ? "" : "s"}
             </span>
           </div>
-          <Popover>
+          <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
                 <Icon icon="solar:bell-linear" className="size-5" />
-                <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-[var(--vidda-danger)] ring-2 ring-white" />
+                {notificationCount > 0 ? (
+                  <span
+                    className={cn(
+                      "absolute right-1.5 top-1.5 size-2 rounded-full ring-2 ring-white",
+                      hasCritical ? "bg-[var(--vidda-danger)]" : "bg-[var(--vidda-accent)]",
+                    )}
+                  />
+                ) : null}
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-[360px] p-0">
-              <div className="border-b p-4"><p className="font-bold">Notifications</p><p className="text-xs text-muted-foreground">3 items require attention</p></div>
-              {notifications.map((notification) => (
-                <button key={notification.id} className="flex w-full gap-3 border-b p-4 text-left hover:bg-muted/60" onClick={() => toast.info(notification.title)}>
+              <div className="border-b p-4">
+                <p className="font-bold">Notifications</p>
+                <p className="text-xs text-muted-foreground">
+                  {notificationCount} item{notificationCount === 1 ? "" : "s"} for{" "}
+                  {role === "employee" ? "employee view" : "compliance view"}
+                </p>
+              </div>
+              {roleNotifications.map((notification) => (
+                <button
+                  key={notification.id}
+                  type="button"
+                  className="flex w-full gap-3 border-b p-4 text-left hover:bg-muted/60"
+                  onClick={() => handleNotificationOpen(notification.href, notification.title)}
+                >
                   <span className={cn("mt-1 size-2 rounded-full", notification.level === "critical" ? "bg-red-500" : notification.level === "warning" ? "bg-amber-500" : "bg-blue-500")} />
-                  <span><span className="block text-sm font-bold">{notification.title}</span><span className="block text-xs text-muted-foreground">{notification.detail} · {notification.time}</span></span>
+                  <span>
+                    <span className="block text-sm font-bold">{notification.title}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {notification.detail} · {notification.time}
+                    </span>
+                  </span>
                 </button>
               ))}
             </PopoverContent>

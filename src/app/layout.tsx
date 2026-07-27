@@ -21,13 +21,69 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "600"],
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "https://vidda-ai-support.vercel.app");
+
+const title = "Vidda Compliance AI Coach";
+const description =
+  "Continuous capability intelligence for regulated teams. Turn regulatory updates into practical learning, measurable readiness and audit-ready evidence.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
-    default: "Vidda Compliance AI Coach",
+    default: title,
     template: "%s · Vidda",
   },
-  description:
-    "Continuous capability intelligence for regulated teams.",
+  description,
+  applicationName: "Vidda Solutions",
+  keywords: [
+    "Vidda",
+    "compliance",
+    "AML",
+    "AI coach",
+    "capability intelligence",
+    "banking",
+  ],
+  authors: [{ name: "Vidda Solutions" }],
+  creator: "Vidda Solutions",
+  publisher: "Vidda Solutions",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "/",
+    siteName: "Vidda Solutions",
+    title,
+    description,
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Vidda Solutions — Compliance AI Coach",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

@@ -146,12 +146,6 @@ export const KnowledgeAssistantScreen = () => {
     <Section title="Knowledge Assistant" eyebrow="Grounded Q&A" description="Ask about approved internal policies. Answers always show their source and confidence.">
       <Card className="mx-auto max-w-4xl shadow-none">
         <CardContent className="p-6 sm:p-8">
-          <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px]">
-            <Badge variant={neuralEnabled ? "default" : "secondary"}>
-              {neuralEnabled ? "Neural mode on" : "Demo mode"}
-            </Badge>
-            <span className="text-muted-foreground">Toggle in /admin</span>
-          </div>
           <div className="flex gap-3">
             <Input
               value={query}
@@ -191,9 +185,6 @@ export const KnowledgeAssistantScreen = () => {
               <div className="flex flex-wrap items-center gap-2 text-xs font-extrabold">
                 <Icon icon="solar:magic-stick-3-linear" className="text-[var(--vidda-primary)]" />
                 Vidda grounded response
-                <Badge variant="outline" className="font-bold">
-                  {result.mode === "neural" ? "Mistral" : "Demo script"}
-                </Badge>
               </div>
               <p className="mt-4 text-sm leading-7">{result.answer}</p>
               <div className="mt-4 rounded-xl border-l-4 border-[var(--vidda-accent)] bg-white p-4">

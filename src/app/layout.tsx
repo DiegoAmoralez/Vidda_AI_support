@@ -22,14 +22,11 @@ const plexMono = IBM_Plex_Mono({
 });
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "https://vidda-ai-support.vercel.app");
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://vidda-ai-support.vercel.app";
 
-const title = "Vidda Compliance AI Coach";
+const title = "Vidda Compliance AI Coach · Capability Intelligence";
 const description =
-  "Continuous capability intelligence for regulated teams. Turn regulatory updates into practical learning, measurable readiness and audit-ready evidence.";
+  "Continuous capability intelligence for regulated teams. Turn policy updates into practical learning and measurable readiness.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -61,16 +58,17 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "/",
+    url: siteUrl,
     siteName: "Vidda Solutions",
     title,
     description,
     images: [
       {
-        url: "/og-image.png",
+        url: `${siteUrl}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Vidda Solutions — Compliance AI Coach",
+        type: "image/png",
       },
     ],
   },
@@ -78,7 +76,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title,
     description,
-    images: ["/og-image.png"],
+    images: [`${siteUrl}/og-image.png`],
   },
   robots: {
     index: true,

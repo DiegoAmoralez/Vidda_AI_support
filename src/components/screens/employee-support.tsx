@@ -22,6 +22,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { learningCases } from "@/data/cases";
+import {
+  getDemoKnowledgeAnswer,
+  KNOWLEDGE_PROMPTS,
+  type KnowledgeAnswer,
+} from "@/lib/knowledge/demo-answers";
+import { useAiSettingsStore } from "@/store/ai-settings-store";
 import { useDemoStore } from "@/store/demo-store";
 
 const employeeTrend = [
@@ -86,31 +92,125 @@ export const MyProgressScreen = () => {
 };
 
 export const KnowledgeAssistantScreen = () => {
+  const neuralEnabled = useAiSettingsStore((state) => state.neuralEnabled);
   const [query, setQuery] = useState("");
-  const [answered, setAnswered] = useState(false);
-  const handleAsk = () => {
-    if (!query.trim()) return;
-    setAnswered(true);
+  const [loading, setLoading] = useState(false);
+  const [warning, setWarning] = useState<string | null>(null);
+  const [result, setResult] = useState<KnowledgeAnswer | null>(null);
+
+  const handleAsk = async (nextQuery?: string) => {
+    const question = (nextQuery ?? query).trim();
+    if (!question || loading) return;
+
+    setQuery(question);
+    setLoading(true);
+    setWarning(null);
+
+    try {
+      const response = await fetch("/api/knowledge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, neuralEnabled }),
+      });
+      const payload = (await response.json()) as KnowledgeAnswer & {
+        error?: string;
+        warning?: string;
+      };
+
+      if (!response.ok) {
+        toast.error(payload.error ?? "Could not get an answer");
+        return;
+      }
+
+      setResult({
+        answer: payload.answer,
+        source: payload.source,
+        confidence: payload.confidence,
+        mode: payload.mode,
+      });
+      if (payload.warning) {
+        setWarning(payload.warning);
+        toast.message(payload.warning);
+      }
+    } catch {
+      const fallback = getDemoKnowledgeAnswer(question);
+      setResult(fallback);
+      setWarning("Network error. Showing demo answer.");
+      toast.error("Network error. Showing demo answer.");
+    } finally {
+      setLoading(false);
+    }
   };
+
   return (
     <Section title="Knowledge Assistant" eyebrow="Grounded Q&A" description="Ask about approved internal policies. Answers always show their source and confidence.">
       <Card className="mx-auto max-w-4xl shadow-none">
         <CardContent className="p-6 sm:p-8">
+          <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px]">
+            <Badge variant={neuralEnabled ? "default" : "secondary"}>
+              {neuralEnabled ? "Neural mode on" : "Demo mode"}
+            </Badge>
+            <span className="text-muted-foreground">Toggle in /admin</span>
+          </div>
           <div className="flex gap-3">
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ask: When must I pause a high-value cash transaction?" onKeyDown={(event) => event.key === "Enter" && handleAsk()} />
-            <Button onClick={handleAsk} aria-label="Ask Knowledge Assistant"><Icon icon="solar:arrow-right-linear" /></Button>
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Ask: When must I pause a high-value cash transaction?"
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void handleAsk();
+                }
+              }}
+              disabled={loading}
+            />
+            <Button
+              onClick={() => void handleAsk()}
+              aria-label="Ask Knowledge Assistant"
+              disabled={loading || !query.trim()}
+            >
+              <Icon icon={loading ? "solar:refresh-circle-linear" : "solar:arrow-right-linear"} className={loading ? "animate-spin" : undefined} />
+            </Button>
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
-            {["What changed in AML Policy v4.7?", "How does EDD affect my role?", "Compare old and new thresholds"].map((prompt) => <button key={prompt} onClick={() => setQuery(prompt)} className="rounded-full border px-3 py-1.5 text-[10px] font-bold text-muted-foreground hover:border-[var(--vidda-primary)] hover:text-foreground">{prompt}</button>)}
+            {KNOWLEDGE_PROMPTS.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                disabled={loading}
+                onClick={() => void handleAsk(prompt)}
+                className="rounded-full border px-3 py-1.5 text-[10px] font-bold text-muted-foreground transition-colors hover:border-[var(--vidda-primary)] hover:text-foreground disabled:opacity-50"
+              >
+                {prompt}
+              </button>
+            ))}
           </div>
-          {answered ? (
+          {result ? (
             <div className="mt-8 rounded-2xl border bg-secondary/50 p-5">
-              <div className="flex items-center gap-2 text-xs font-extrabold"><Icon icon="solar:magic-stick-3-linear" className="text-[var(--vidda-primary)]" />Vidda grounded response</div>
-              <p className="mt-4 text-sm leading-7">Under AML Policy v4.7, a high-value cash transaction that is inconsistent with the customer profile must remain pending while source-of-funds evidence is reviewed and the case is escalated through the approved Compliance channel.</p>
-              <div className="mt-4 rounded-xl border-l-4 border-[var(--vidda-accent)] bg-white p-4"><p className="text-xs font-extrabold">Internal AML & CTF Policy · v4.7 · Section 8.3</p><p className="mt-1 text-[10px] text-muted-foreground">98% confidence · Effective 12 Jul 2026</p></div>
+              <div className="flex flex-wrap items-center gap-2 text-xs font-extrabold">
+                <Icon icon="solar:magic-stick-3-linear" className="text-[var(--vidda-primary)]" />
+                Vidda grounded response
+                <Badge variant="outline" className="font-bold">
+                  {result.mode === "neural" ? "Mistral" : "Demo script"}
+                </Badge>
+              </div>
+              <p className="mt-4 text-sm leading-7">{result.answer}</p>
+              <div className="mt-4 rounded-xl border-l-4 border-[var(--vidda-accent)] bg-white p-4">
+                <p className="text-xs font-extrabold">{result.source}</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {result.confidence}% confidence · Effective 12 Jul 2026
+                </p>
+              </div>
+              {warning ? (
+                <p className="mt-3 text-[11px] text-amber-700">{warning}</p>
+              ) : null}
             </div>
           ) : (
-            <div className="mt-12 py-12 text-center text-muted-foreground"><Icon icon="solar:notebook-bookmark-linear" className="mx-auto size-10 opacity-40" /><p className="mt-3 text-sm">Ask a policy question to see a cited answer.</p></div>
+            <div className="mt-12 py-12 text-center text-muted-foreground">
+              <Icon icon="solar:notebook-bookmark-linear" className="mx-auto size-10 opacity-40" />
+              <p className="mt-3 text-sm">Ask a policy question to see a cited answer.</p>
+            </div>
           )}
         </CardContent>
       </Card>

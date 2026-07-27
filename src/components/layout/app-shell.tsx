@@ -58,8 +58,8 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
 
   const sidebar = (
     <aside className="flex h-full flex-col bg-[var(--sidebar)] text-[var(--sidebar-foreground)]">
-      <div className="flex h-20 items-center border-b border-white/10 px-5">
-        <ViddaMark inverse />
+      <div className="flex h-20 items-center overflow-visible border-b border-white/10 px-4">
+        <ViddaMark inverse className="max-w-[216px]" />
       </div>
       <div className="border-b border-white/10 px-4 py-4">
         <div className="rounded-xl bg-white/[0.06] p-3">
@@ -80,9 +80,9 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
               href={`/portal/${item.slug}`}
               onClick={() => setMobileOpen(false)}
               className={cn(
-                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-white/62 hover:bg-white/[0.07] hover:text-white",
+                "group flex items-center gap-3 rounded-full px-3 py-2.5 text-[13px] font-medium text-white/62 hover:bg-white/[0.07] hover:text-white",
                 isActive &&
-                  "bg-[var(--vidda-accent)] text-[var(--vidda-primary)] hover:bg-[var(--vidda-accent)] hover:text-[var(--vidda-primary)]",
+                  "bg-[var(--vidda-accent)] text-white hover:bg-[var(--vidda-accent)] hover:text-white",
               )}
             >
               <Icon icon={item.icon} className="size-[18px]" />
@@ -135,8 +135,8 @@ export const AppShell = ({ children }: { children: React.ReactNode }) => {
   );
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <div className="fixed inset-y-0 left-0 z-30 hidden w-[248px] lg:block">
+    <div className="min-h-screen lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
+      <div className="fixed inset-y-0 left-0 z-30 hidden w-[260px] lg:block">
         {sidebar}
       </div>
       <div className="min-w-0 lg:col-start-2">

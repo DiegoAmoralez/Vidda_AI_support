@@ -243,12 +243,12 @@ export const ComplianceOverview = () => {
             <div className="mt-5 h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={readinessTrend}>
-                  <defs><linearGradient id="readinessFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#173f3a" stopOpacity={0.32} /><stop offset="100%" stopColor="#173f3a" stopOpacity={0.02} /></linearGradient></defs>
-                  <CartesianGrid vertical={false} stroke="#e4e8e3" />
+                  <defs><linearGradient id="readinessFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0087c1" stopOpacity={0.32} /><stop offset="100%" stopColor="#0087c1" stopOpacity={0.02} /></linearGradient></defs>
+                  <CartesianGrid vertical={false} stroke="#d9e2ef" />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} fontSize={11} />
                   <YAxis domain={[60, 90]} axisLine={false} tickLine={false} fontSize={11} />
                   <Tooltip />
-                  <Area type="monotone" dataKey="readiness" stroke="#173f3a" fill="url(#readinessFill)" strokeWidth={3} />
+                  <Area type="monotone" dataKey="readiness" stroke="#2c4269" fill="url(#readinessFill)" strokeWidth={3} />
                   <Area type="monotone" dataKey="target" stroke="#b26a20" fill="transparent" strokeDasharray="4 4" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -257,7 +257,7 @@ export const ComplianceOverview = () => {
         </Card>
         <Card className="border-none bg-[var(--vidda-primary)] text-white shadow-none">
           <CardContent className="p-6">
-            <div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-xl bg-[var(--vidda-accent)] text-[var(--vidda-primary)]"><Icon icon="solar:magic-stick-3-linear" /></span><div><p className="text-sm font-extrabold">Executive AI summary</p><p className="text-[10px] text-white/45">Grounded in 8,420 assessments</p></div></div>
+            <div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-xl bg-[var(--vidda-accent)] text-white"><Icon icon="solar:magic-stick-3-linear" /></span><div><p className="text-sm font-extrabold">Executive AI summary</p><p className="text-[10px] text-white/45">Grounded in 8,420 assessments</p></div></div>
             <p className="mt-5 text-sm leading-7 text-white/66">
               Compliance readiness increased by 9% during the last 90 days. However,
               AML Escalation remains below target in Corporate Banking and Warsaw

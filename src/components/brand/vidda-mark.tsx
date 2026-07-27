@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 type ViddaMarkProps = {
@@ -10,47 +11,51 @@ export const ViddaMark = ({
   compact = false,
   inverse = false,
   className,
-}: ViddaMarkProps) => (
-  <div className={cn("flex items-center gap-2.5", className)} aria-label="Vidda">
-    <span
+}: ViddaMarkProps) => {
+  const src = compact
+    ? inverse
+      ? "/vidda-mark-light.png"
+      : "/vidda-mark.png"
+    : inverse
+      ? "/vidda-logo-light.png"
+      : "/vidda-logo.png";
+
+  if (compact) {
+    return (
+      <div
+        className={cn("relative size-9 shrink-0 overflow-visible", className)}
+        aria-label="Vidda Solutions"
+      >
+        <Image
+          src={src}
+          alt="Vidda Solutions"
+          width={80}
+          height={80}
+          className="size-full object-contain object-center"
+          priority
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
       className={cn(
-        "relative grid size-9 place-items-center overflow-hidden rounded-[11px]",
-        inverse ? "bg-[var(--vidda-accent)]" : "bg-[var(--vidda-primary)]",
+        "relative flex w-full max-w-[200px] shrink-0 items-center overflow-visible sm:max-w-[220px]",
+        className,
       )}
-      aria-hidden="true"
+      aria-label="Vidda Solutions"
     >
-      <span
-        className={cn(
-          "absolute size-4 rotate-45 rounded-[4px]",
-          inverse ? "bg-[var(--vidda-primary)]" : "bg-[var(--vidda-accent)]",
-        )}
+      {/* Keep full lockup (mark + VIDDA + SOLUTIONS) via width-first scaling */}
+      <Image
+        src={src}
+        alt="Vidda Solutions"
+        width={509}
+        height={104}
+        className="h-auto w-full max-h-10 object-contain object-left"
+        sizes="(max-width: 640px) 200px, 220px"
+        priority
       />
-      <span
-        className={cn(
-          "absolute bottom-1.5 right-1.5 size-2 rounded-full",
-          inverse ? "bg-white" : "bg-white/90",
-        )}
-      />
-    </span>
-    {!compact && (
-      <span className="leading-none">
-        <span
-          className={cn(
-            "block text-[1.05rem] font-extrabold tracking-[-0.04em]",
-            inverse ? "text-white" : "text-[var(--vidda-primary)]",
-          )}
-        >
-          VIDDA
-        </span>
-        <span
-          className={cn(
-            "mt-1 block text-[8px] font-bold uppercase tracking-[0.18em]",
-            inverse ? "text-white/55" : "text-muted-foreground",
-          )}
-        >
-          Compliance AI
-        </span>
-      </span>
-    )}
-  </div>
-);
+    </div>
+  );
+};

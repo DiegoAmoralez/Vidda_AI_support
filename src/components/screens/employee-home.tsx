@@ -86,7 +86,7 @@ export const EmployeeHome = () => {
               </div>
               <Button
                 size="lg"
-                className="mt-8 gap-2 bg-[var(--vidda-accent)] text-[var(--vidda-primary)] hover:-translate-y-0.5 hover:bg-[#daf777]"
+                className="mt-8 gap-2 bg-white text-[var(--vidda-primary)] hover:-translate-y-0.5 hover:bg-white/90"
                 onClick={handleStartCase}
               >
                 Start today’s case

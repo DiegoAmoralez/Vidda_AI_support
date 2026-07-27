@@ -25,15 +25,24 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[var(--vidda-primary-dark)] text-white">
-      <div className="pointer-events-none absolute inset-0 opacity-25 vidda-grid" />
-      <div className="pointer-events-none absolute -right-40 -top-44 size-[38rem] rounded-full bg-[var(--vidda-accent)]/15 blur-3xl" />
-      <header className="relative mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
-        <ViddaMark inverse />
-        <div className="hidden items-center gap-2 text-xs text-white/50 sm:flex">
+    <main className="min-h-screen overflow-hidden bg-[var(--vidda-background)] text-[var(--vidda-text-primary)]">
+      <div className="pointer-events-none absolute inset-0 opacity-40 vidda-grid" />
+      <div className="pointer-events-none absolute -right-32 -top-40 size-[36rem] rounded-full bg-[var(--vidda-accent)]/10 blur-3xl" />
+      <div className="pointer-events-none absolute -left-24 top-1/3 size-[28rem] rounded-full bg-[var(--vidda-primary)]/8 blur-3xl" />
+
+      <header className="relative mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 border-b border-[var(--vidda-border)]/70 bg-white/70 px-5 backdrop-blur-md sm:px-8">
+        <ViddaMark className="max-w-[240px] sm:max-w-[260px]" />
+        <div className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
           <span className="size-1.5 rounded-full bg-[var(--vidda-accent)]" />
           NordBank International · Simulated environment
         </div>
+        <Button
+          size="sm"
+          className="hidden sm:inline-flex"
+          onClick={() => handleEnterDemo("employee", "/portal/home")}
+        >
+          Enter demo
+        </Button>
       </header>
 
       <section className="relative mx-auto grid min-h-[calc(100vh-5rem)] max-w-7xl items-center gap-16 px-5 py-16 sm:px-8 lg:grid-cols-[1.04fr_.96fr] lg:py-10">
@@ -42,25 +51,25 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
         >
-          <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.06] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.17em] text-white/68">
+          <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--vidda-border)] bg-white px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.17em] text-[var(--vidda-primary)] shadow-sm">
             <Icon icon="solar:shield-check-linear" className="size-4 text-[var(--vidda-accent)]" />
             Continuous capability intelligence
           </p>
-          <h1 className="max-w-3xl text-5xl font-extrabold leading-[0.98] tracking-[-0.055em] sm:text-6xl lg:text-[4.7rem]">
+          <h1 className="font-heading max-w-3xl text-5xl font-extrabold leading-[0.98] tracking-[-0.045em] text-[var(--vidda-primary-dark)] sm:text-6xl lg:text-[4.4rem]">
             Compliance capabilities that{" "}
             <span className="text-[var(--vidda-accent)]">evolve with regulation.</span>
           </h1>
-          <p className="mt-7 max-w-2xl text-lg font-light leading-8 text-white/62">
+          <p className="mt-7 max-w-2xl text-lg font-light leading-8 text-muted-foreground">
             Vidda Compliance AI Coach turns regulatory updates into daily practical
             learning, measurable capability insights and targeted risk reduction.
           </p>
-          <p className="mt-4 text-sm font-bold text-white/90">
+          <p className="mt-4 text-sm font-bold text-[var(--vidda-primary)]">
             From static compliance training to continuous capability development.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Button
               size="lg"
-              className="h-12 gap-2 bg-[var(--vidda-accent)] px-6 text-[var(--vidda-primary)] hover:-translate-y-0.5 hover:bg-[#daf777]"
+              className="h-12 gap-2 px-7"
               onClick={() => handleEnterDemo("employee", "/portal/home")}
             >
               Enter employee demo
@@ -69,13 +78,13 @@ export default function Home() {
             <Button
               size="lg"
               variant="outline"
-              className="h-12 border-white/18 bg-white/[0.04] px-6 text-white hover:-translate-y-0.5 hover:bg-white/10 hover:text-white"
+              className="h-12 border-[var(--vidda-primary)]/20 bg-white px-7 text-[var(--vidda-primary)] hover:bg-[var(--vidda-primary)]/5"
               onClick={() => handleEnterDemo("compliance", "/portal/overview")}
             >
               Enter compliance dashboard
             </Button>
           </div>
-          <p className="mt-8 flex items-center gap-2 text-xs text-white/38">
+          <p className="mt-8 flex items-center gap-2 text-xs text-muted-foreground">
             <Icon icon="solar:widget-add-linear" />
             Powered by Vidda Index and Vidda Automation
           </p>
@@ -87,12 +96,12 @@ export default function Home() {
           transition={{ duration: 0.3, delay: 0.1, ease: "easeOut" }}
           className="relative lg:pb-16"
         >
-          <div className="rounded-[2rem] border border-white/12 bg-white/[0.06] p-3 shadow-2xl shadow-black/20 backdrop-blur-xl">
-            <div className="rounded-[1.4rem] bg-[#f7f8f3] p-5 text-[var(--vidda-text-primary)] sm:p-7">
-              <div className="flex items-center justify-between border-b pb-5">
+          <div className="rounded-[2rem] border border-[var(--vidda-border)] bg-white p-3 shadow-[0_24px_60px_-28px_rgba(44,66,105,0.35)]">
+            <div className="vidda-pastel-card rounded-[1.4rem] p-5 sm:p-7">
+              <div className="flex items-center justify-between border-b border-[var(--vidda-border)]/80 pb-5">
                 <div>
                   <p className="font-mono text-[9px] uppercase tracking-[0.17em] text-muted-foreground">Live capability loop</p>
-                  <p className="mt-1 text-lg font-extrabold">Policy → behavior → evidence</p>
+                  <p className="font-heading mt-1 text-lg font-extrabold text-[var(--vidda-primary-dark)]">Policy → behavior → evidence</p>
                 </div>
                 <span className="flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-800">
                   <span className="size-1.5 rounded-full bg-emerald-600" />
@@ -106,9 +115,9 @@ export default function Home() {
                     initial={{ opacity: 0, x: 12 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.18 + index * 0.07, duration: 0.25 }}
-                    className="group flex items-center gap-4 rounded-xl border bg-white p-4 shadow-sm transition-transform hover:-translate-y-0.5"
+                    className="group flex items-center gap-4 rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm transition-transform hover:-translate-y-0.5"
                   >
-                    <span className="grid size-10 place-items-center rounded-xl bg-[var(--vidda-primary)] text-[var(--vidda-accent)]">
+                    <span className="grid size-10 place-items-center rounded-xl bg-[var(--vidda-primary)] text-white">
                       <Icon icon={node.icon} className="size-5" />
                     </span>
                     <span className="flex-1">
@@ -121,24 +130,24 @@ export default function Home() {
               </div>
               <div className="grid grid-cols-3 gap-3">
                 {[["78%", "Readiness"], ["1,248", "Assessed"], ["+9%", "90-day gain"]].map(([value, label]) => (
-                  <div key={label} className="rounded-xl bg-[var(--vidda-primary)] p-3 text-white">
+                  <div key={label} className="rounded-2xl bg-[var(--vidda-primary)] p-3 text-white">
                     <p className="metric-number text-xl font-extrabold">{value}</p>
-                    <p className="mt-1 text-[9px] uppercase tracking-wide text-white/48">{label}</p>
+                    <p className="mt-1 text-[9px] uppercase tracking-wide text-white/55">{label}</p>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-          <div className="absolute bottom-0 -left-5 hidden rounded-xl border border-white/12 bg-[#244943] px-4 py-3 shadow-xl lg:block">
-            <p className="text-[10px] text-white/45">Latest signal</p>
-            <p className="mt-1 flex items-center gap-2 text-xs font-bold">
-              <Icon icon="solar:danger-triangle-linear" className="text-amber-300" />
+          <div className="absolute bottom-0 -left-5 hidden rounded-2xl border border-[var(--vidda-border)] bg-white px-4 py-3 shadow-xl lg:block">
+            <p className="text-[10px] text-muted-foreground">Latest signal</p>
+            <p className="mt-1 flex items-center gap-2 text-xs font-bold text-[var(--vidda-primary-dark)]">
+              <Icon icon="solar:danger-triangle-linear" className="text-amber-500" />
               Escalation gap detected
             </p>
           </div>
         </motion.div>
       </section>
-      <footer className="relative mx-auto flex max-w-7xl flex-col gap-2 border-t border-white/10 px-5 py-5 text-[10px] text-white/35 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+      <footer className="relative mx-auto flex max-w-7xl flex-col gap-2 border-t border-[var(--vidda-border)] px-5 py-5 text-[10px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <p>This prototype uses simulated data and predefined AI responses.</p>
       </footer>
     </main>

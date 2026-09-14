@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, type FormEvent } from "react";
+import { Icon } from "@iconify/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ViddaMark } from "@/components/brand/vidda-mark";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ function GateForm() {
   const searchParams = useSearchParams();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -63,16 +65,30 @@ function GateForm() {
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          className="h-11 rounded-xl bg-white px-3"
-          required
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="h-11 rounded-xl bg-white px-3 pr-11"
+            required
+          />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted-foreground transition-colors hover:text-[var(--vidda-primary)]"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((value) => !value)}
+          >
+            <Icon
+              icon={showPassword ? "solar:eye-closed-linear" : "solar:eye-linear"}
+              className="size-5"
+            />
+          </button>
+        </div>
       </div>
       {error ? (
         <p className="text-sm text-destructive" role="alert">
